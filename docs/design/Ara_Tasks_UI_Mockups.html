@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ara Tasks — UI Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14201C; --brand:#0C5A54; --brand-700:#083F3A; --brand-50:#E4F0EE;
+    --paper:#EAEEEC; --surface:#FFFFFF; --line:#D8E0DD; --muted:#63726C;
+    --ok:#1E8E5A; --ok-50:#E4F3EB; --warn:#C4841A; --warn-50:#F7EEDD;
+    --bad:#C0392B; --bad-50:#F8E7E4; --gold:#A9812F; --gold-50:#F4EEDF;
+    --ui:'IBM Plex Sans Arabic','Segoe UI',Tahoma,Arial,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+    --r:16px; --r-sm:11px;
+    --sh:0 1px 2px rgba(20,32,28,.05),0 8px 24px -12px rgba(20,32,28,.18);
+    --sh-lg:0 2px 4px rgba(20,32,28,.06),0 24px 48px -20px rgba(20,32,28,.28);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--ui);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;padding:48px 24px 80px;line-height:1.55}
+  .mono{font-family:var(--mono);font-feature-settings:"tnum";letter-spacing:-.01em}
+
+  /* ---------- board header ---------- */
+  .board{max-width:1240px;margin:0 auto}
+  .masthead{margin-bottom:36px}
+  .brandline{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .logo{width:38px;height:38px;border-radius:11px;background:var(--brand);display:grid;place-items:center;box-shadow:var(--sh)}
+  .logo svg{width:20px;height:20px;color:#fff}
+  .brandline h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  .brandline .en{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.02em;padding-top:3px}
+  .masthead p{color:var(--muted);font-size:14.5px;max-width:640px}
+
+  .legend{display:flex;flex-wrap:wrap;gap:26px;margin-top:22px;padding:16px 20px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+  .legend .grp{display:flex;flex-direction:column;gap:8px}
+  .legend .lbl{font-size:10.5px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono)}
+  .sw{display:flex;gap:6px;align-items:center}
+  .dot{width:16px;height:16px;border-radius:5px;border:1px solid rgba(0,0,0,.06)}
+  .legend .t{font-size:12px;color:var(--muted)}
+  .typeface{font-size:15px;font-weight:600}
+
+  /* ---------- section label ---------- */
+  .sec{display:flex;align-items:center;gap:12px;margin:44px 0 22px}
+  .sec .n{font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;background:var(--brand);border-radius:6px;padding:3px 8px}
+  .sec h2{font-size:16px;font-weight:700}
+  .sec .line{flex:1;height:1px;background:var(--line)}
+
+  /* ---------- device rail ---------- */
+  .rail{display:flex;flex-wrap:wrap;gap:30px;align-items:flex-start}
+  .device{width:384px}
+  .device .cap{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .device .cap .k{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:500}
+  .phone{background:#0b1512;border-radius:40px;padding:11px;box-shadow:var(--sh-lg)}
+  .screen{background:var(--paper);border-radius:30px;overflow:hidden;position:relative;height:812px;display:flex;flex-direction:column}
+
+  /* status bar */
+  .statusbar{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-family:var(--mono);font-size:12.5px;font-weight:600;flex:none}
+  .statusbar .r{display:flex;gap:5px;align-items:center}
+  .statusbar .bar{width:3px;border-radius:2px;background:currentColor}
+  .sb-dark{color:#fff}.sb-light{color:var(--ink)}
+
+  /* app bar */
+  .appbar{padding:6px 20px 14px;display:flex;align-items:center;justify-content:space-between;flex:none}
+  .appbar.brand{background:var(--brand);color:#fff}
+  .greet .s{font-size:12.5px;opacity:.85}
+  .greet .n{font-size:18px;font-weight:700;margin-top:1px}
+  .abtitle{font-size:18px;font-weight:700}
+  .iconbtn{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:rgba(255,255,255,.14);color:#fff;position:relative;border:none}
+  .iconbtn.solid{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  .iconbtn svg{width:19px;height:19px}
+  .avatar{width:38px;height:38px;border-radius:50%;background:var(--brand-700);color:#fff;display:grid;place-items:center;font-weight:600;font-size:14px}
+  .dotbadge::after{content:"";position:absolute;top:8px;inset-inline-start:8px;width:8px;height:8px;border-radius:50%;background:var(--warn);border:2px solid var(--brand)}
+
+  /* body scroll area */
+  .body{flex:1;overflow:auto;padding:18px 16px 16px}
+  .body.tint{padding-top:0}
+
+  /* cards + bits */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh)}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;line-height:1.6}
+  .chip svg{width:12px;height:12px}
+  .c-ok{background:var(--ok-50);color:var(--ok)} .c-warn{background:var(--warn-50);color:var(--warn)}
+  .c-bad{background:var(--bad-50);color:var(--bad)} .c-brand{background:var(--brand-50);color:var(--brand)}
+  .c-mut{background:#EEF1F0;color:var(--muted)} .c-gold{background:var(--gold-50);color:var(--gold)}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:none;border-radius:13px;padding:15px;font-family:var(--ui);font-size:15.5px;font-weight:600;cursor:pointer}
+  .btn svg{width:18px;height:18px}
+  .btn-brand{background:var(--brand);color:#fff}
+  .btn-ok{background:var(--ok);color:#fff}
+  .btn-ghost{background:var(--surface);color:var(--brand);border:1.5px solid var(--brand-50)}
+  .btn-line{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  .btn-sm{padding:10px;font-size:13.5px;border-radius:11px}
+
+  .kv{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line)}
+  .kv:first-child{border-top:none}
+  .kv .k{font-size:13.5px;color:var(--muted);display:flex;align-items:center;gap:8px}
+  .kv .k svg{width:16px;height:16px;color:var(--muted)}
+  .kv .v{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+
+  /* shift hero */
+  .shift{padding:18px;margin-bottom:16px}
+  .shift .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+  .shift .br{font-size:15px;font-weight:700}
+  .shift .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .shift .time{font-size:24px;font-weight:600;margin:2px 0 16px}
+  .shift .time .to{color:var(--muted);font-size:16px;margin:0 6px}
+  .presence{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ok);background:var(--ok-50);padding:9px 12px;border-radius:11px;margin-bottom:14px}
+  .presence svg{width:16px;height:16px}
+
+  /* section head inside body */
+  .bhead{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 12px}
+  .bhead .t{font-size:15px;font-weight:700} .bhead .t b{color:var(--brand)}
+  .bhead .a{font-size:12.5px;color:var(--brand);font-weight:600}
+
+  /* task row */
+  .task{padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+  .task .ring{width:34px;height:34px;flex:none}
+  .task .mid{flex:1;min-width:0}
+  .task .tt{font-size:14.5px;font-weight:600;margin-bottom:6px}
+  .task .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .task .dl{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
+  .task .dl svg{width:13px;height:13px}
+
+  /* bottom nav */
+  .tabbar{display:flex;background:var(--surface);border-top:1px solid var(--line);padding:8px 8px 22px;flex:none}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--muted);padding:6px 0;background:none;border:none}
+  .tab svg{width:22px;height:22px}
+  .tab.on{color:var(--brand)}
+  .tab.on .ic{background:var(--brand-50);border-radius:10px}
+  .tab .ic{padding:5px 14px}
+
+  /* ===== check-in signature ===== */
+  .geowrap{display:grid;place-items:center;padding:14px 0 6px}
+  .geo{position:relative;width:236px;height:236px}
+  .geo .lab{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+  .geo .lab .st{font-size:13px;font-weight:700;color:var(--ok)}
+  .geo .lab .ds{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:2px}
+  .clockbig{text-align:center;font-family:var(--mono);font-size:40px;font-weight:600;letter-spacing:-.02em;margin:4px 0 2px}
+  .clocklab{text-align:center;font-size:12.5px;color:var(--muted);margin-bottom:16px}
+
+  /* proof uploader */
+  .proofgrid{display:flex;gap:10px;margin-top:10px}
+  .proof-add{flex:1;border:1.5px dashed var(--line);border-radius:13px;padding:16px 8px;display:flex;flex-direction:column;align-items:center;gap:7px;color:var(--brand);background:var(--brand-50)}
+  .proof-add svg{width:22px;height:22px}
+  .proof-add .t{font-size:12.5px;font-weight:600}
+  .proof-add .h{font-size:10.5px;color:var(--muted);font-weight:500}
+  .proof-thumb{width:96px;border-radius:13px;overflow:hidden;border:1px solid var(--line);position:relative;background:linear-gradient(135deg,#c9d6d1,#eef2f0)}
+  .proof-thumb .img{height:74px;display:grid;place-items:center;color:#9fb0aa}
+  .proof-thumb .img svg{width:24px;height:24px}
+  .seal{display:flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;color:var(--gold);background:var(--gold-50);padding:4px 6px;line-height:1.3}
+  .seal svg{width:11px;height:11px}
+
+  /* checklist */
+  .check{display:flex;gap:11px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+  .check:first-child{border-top:none}
+  .box{width:21px;height:21px;border-radius:6px;border:1.5px solid var(--line);flex:none;display:grid;place-items:center;margin-top:1px}
+  .box.on{background:var(--ok);border-color:var(--ok)} .box.on svg{width:13px;height:13px;color:#fff}
+  .check .ct{font-size:14px;flex:1} .check.done .ct{color:var(--muted);text-decoration:line-through}
+  .req{font-size:10px;font-weight:700;color:var(--warn);background:var(--warn-50);padding:2px 6px;border-radius:5px}
+
+  /* approval card */
+  .appr{padding:14px;margin-bottom:12px}
+  .appr .h{display:flex;gap:11px;align-items:center;margin-bottom:12px}
+  .appr .h .av{width:40px;height:40px;border-radius:11px;background:var(--brand-50);color:var(--brand);display:grid;place-items:center;font-weight:700;font-size:15px;flex:none}
+  .appr .nm{font-size:14.5px;font-weight:700}
+  .appr .sub{font-size:12.5px;color:var(--muted);margin-top:1px}
+  .appr .tm{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-inline-start:auto;flex:none}
+  .appr .work{display:flex;gap:11px;align-items:center;padding:11px;background:var(--paper);border-radius:12px;margin-bottom:12px}
+  .appr .work .pic{width:46px;height:46px;border-radius:9px;background:linear-gradient(135deg,#c9d6d1,#eef2f0);display:grid;place-items:center;color:#9fb0aa;flex:none}
+  .appr .work .pic svg{width:20px;height:20px}
+  .appr .work .wt{font-size:13.5px;font-weight:600} .appr .work .wm{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .appr .acts{display:flex;gap:10px}
+  .summ{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:14px;background:var(--brand);color:#fff;border-radius:13px}
+  .summ .big{font-family:var(--mono);font-size:22px;font-weight:600}
+  .summ .tx{font-size:13px;font-weight:500}
+  .filter{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line);padding:6px 11px;border-radius:9px}
+  .filter svg{width:14px;height:14px;color:var(--muted)}
+
+  /* ============ WEB DASHBOARD ============ */
+  .web{width:100%;max-width:1180px}
+  .web .cap{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;gap:8px;align-items:center}
+  .web .cap .k{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .browser{border-radius:16px;overflow:hidden;box-shadow:var(--sh-lg);border:1px solid var(--line)}
+  .chrome{background:#dfe5e2;padding:11px 16px;display:flex;align-items:center;gap:14px}
+  .traffic{display:flex;gap:7px}.traffic i{width:11px;height:11px;border-radius:50%;background:#b9c4bf;display:block}
+  .url{flex:1;background:#fff;border-radius:8px;padding:6px 14px;font-family:var(--mono);font-size:11.5px;color:var(--muted);text-align:center}
+  .app{display:grid;grid-template-columns:1fr 236px;background:var(--paper);min-height:660px}
+  /* RTL: sidebar visually on the right — place it last in DOM so it renders at inline-end? we want it at right = inline-start in RTL = first. Use order */
+  .side{grid-column:2;background:var(--surface);border-inline-start:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column}
+  .side .brandrow{display:flex;align-items:center;gap:10px;padding:6px 8px 20px}
+  .side .brandrow .lg{width:30px;height:30px;border-radius:9px;background:var(--brand);display:grid;place-items:center}
+  .side .brandrow .lg svg{width:16px;height:16px;color:#fff}
+  .side .brandrow .nm{font-weight:700;font-size:15px}
+  .side .brandrow .en{font-family:var(--mono);font-size:9.5px;color:var(--muted)}
+  .nav{display:flex;flex-direction:column;gap:2px}
+  .nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:500;color:var(--muted);text-decoration:none}
+  .nav a svg{width:18px;height:18px}
+  .nav a.on{background:var(--brand-50);color:var(--brand);font-weight:600}
+  .side .who{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-top:1px solid var(--line)}
+  .side .who .av{width:34px;height:34px;border-radius:9px;background:var(--brand-700);color:#fff;display:grid;place-items:center;font-weight:600;font-size:13px}
+  .side .who .nm{font-size:13px;font-weight:600}.side .who .rl{font-size:11px;color:var(--muted)}
+
+  .main{grid-column:1;padding:22px 26px;overflow:hidden}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .topbar h3{font-size:20px;font-weight:700}
+  .topbar .sub{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:2px}
+  .topbar .tools{display:flex;gap:10px;align-items:center}
+  .period{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .period button{border:none;background:none;padding:8px 14px;font-family:var(--ui);font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer}
+  .period button.on{background:var(--brand);color:#fff}
+  .tool{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--muted)}
+  .tool svg{width:18px;height:18px}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px}
+  .kpi .kl{font-size:12.5px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:7px}
+  .kpi .kl .i{width:26px;height:26px;border-radius:8px;display:grid;place-items:center}
+  .kpi .kl .i svg{width:15px;height:15px}
+  .kpi .num{font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-.02em;margin:10px 0 4px}
+  .kpi .num .u{font-size:16px;color:var(--muted)}
+  .kpi .delta{font-size:11.5px;font-weight:600;display:flex;align-items:center;gap:4px}
+  .kpi .delta svg{width:12px;height:12px}
+  .up{color:var(--ok)} .down{color:var(--bad)}
+  .spark{height:30px;margin-top:8px}
+
+  .grid2{display:grid;grid-template-columns:1fr 300px;gap:16px}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .panel .ph{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--line)}
+  .panel .ph .t{font-size:14.5px;font-weight:700}
+  .panel .ph .a{font-size:12px;color:var(--brand);font-weight:600}
+  table{width:100%;border-collapse:collapse}
+  thead th{font-size:11px;font-weight:600;color:var(--muted);text-align:start;padding:11px 18px;background:#f3f6f5;letter-spacing:.02em;text-transform:uppercase;font-family:var(--mono)}
+  tbody td{padding:13px 18px;border-top:1px solid var(--line);font-size:13.5px}
+  tbody tr:hover{background:#f7faf9}
+  .brcell{display:flex;align-items:center;gap:9px;font-weight:600}
+  .brcell .d{width:9px;height:9px;border-radius:3px}
+  .num-c{font-family:var(--mono);font-weight:600}
+  .barcell{display:flex;align-items:center;gap:9px}
+  .bar{height:7px;border-radius:4px;background:#eef1f0;flex:1;overflow:hidden;min-width:60px}
+  .bar i{display:block;height:100%;border-radius:4px}
+
+  .attn .ph{border-bottom:1px solid var(--line)}
+  .alert{display:flex;gap:11px;padding:13px 16px;border-top:1px solid var(--line)}
+  .alert:first-child{border-top:none}
+  .alert .ai{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none}
+  .alert .ai svg{width:16px;height:16px}
+  .alert .at{font-size:13px;font-weight:600} .alert .as{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+  @media (max-width:520px){.device{width:100%}.phone{border-radius:32px}}
+</style>
+</head>
+<body>
+
+<!-- icon defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></symbol>
+  <symbol id="i-task" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6M8 4v3h8V4"/><rect x="4" y="4" width="16" height="17" rx="2"/><path d="m9 13 2 2 4-4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-3.5 3-6 7-6s7 2.5 7 6"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10.5 21a2 2 0 0 0 3 0"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.2"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3Z"/><path d="m9.5 12 1.8 1.8 3.2-3.6"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="M8 16v-3M12 16v-7M16 16v-5"/></symbol>
+  <symbol id="i-bldg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M10 21v-3h4v3"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6M18.5 20c0-2.4-1.2-4-3-4.6"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M5 5l1.5 1.5M17.5 17.5 19 19M3 12h2M19 12h2M5 19l1.5-1.5M17.5 6.5 19 5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 9v5M12 17h.01"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5Z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5v14l11-7L8 5Z"/></symbol>
+</defs></svg>
+
+<div class="board">
+  <!-- masthead -->
+  <div class="masthead">
+    <div class="brandline">
+      <span class="logo"><svg><use href="#i-shield"/></svg></span>
+      <h1><span dir="ltr" style="unicode-bidi:isolate">ARA&nbsp;Tasks</span> — واجهات المنتج</h1>
+      <span class="en">ARA&nbsp;Tasks · UI/UX</span>
+    </div>
+    <p>اتجاه بصري لأداة تشغيل ميدانية سعودية: عربي أولاً (RTL)، لون petrol غامق موثوق، وأرقام بخط أحادي المسافة تمنح الإحساس بالدقة. الشاشات أدناه تغطي الحلقة الأساسية — حضور الموظف، إثبات العمل، موافقة المدير، ولوحة المالك.</p>
+
+    <div class="legend">
+      <div class="grp">
+        <span class="lbl">اللوحة اللونية</span>
+        <div class="sw">
+          <span class="dot" style="background:#0C5A54"></span>
+          <span class="dot" style="background:#14201C"></span>
+          <span class="dot" style="background:#1E8E5A"></span>
+          <span class="dot" style="background:#C4841A"></span>
+          <span class="dot" style="background:#C0392B"></span>
+          <span class="dot" style="background:#A9812F"></span>
+        </div>
+      </div>
+      <div class="grp">
+        <span class="lbl">الحالات</span>
+        <div class="sw" style="gap:14px">
+          <span class="chip c-ok"><svg><use href="#i-check"/></svg>حاضر / في الموعد</span>
+          <span class="chip c-warn">متأخر</span>
+          <span class="chip c-bad">غياب / متأخرة</span>
+        </div>
+      </div>
+      <div class="grp">
+        <span class="lbl">الخطوط</span>
+        <div class="sw" style="gap:16px">
+          <span class="typeface">أرا تاسكس — واجهة</span>
+          <span class="typeface mono">08:03 · 91%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MOBILE ============ -->
+  <div class="sec"><span class="n">تطبيق الموظف / المدير</span><h2>iOS &amp; Android · Flutter</h2><span class="line"></span></div>
+
+  <div class="rail">
+
+    <!-- 1) MY DAY -->
+    <div class="device">
+      <div class="cap">يومك <span class="k">Employee · Home</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar sb-dark"><span>9:41</span><div class="r"><span class="bar" style="height:8px"></span><span class="bar" style="height:11px"></span><span class="bar" style="height:14px"></span><svg width="20" height="12" viewBox="0 0 24 14" style="margin-inline-start:4px"><rect x="1" y="1" width="19" height="12" rx="3" fill="none" stroke="#fff" stroke-width="1.4"/><rect x="3" y="3" width="13" height="8" rx="1.5" fill="#fff"/></svg></div></div>
+        <div class="appbar brand">
+          <div class="greet"><div class="s">صباح الخير</div><div class="n">محمد الشهري</div></div>
+          <button class="iconbtn dotbadge"><svg><use href="#i-bell"/></svg></button>
+        </div>
+        <div class="body">
+          <div class="card shift">
+            <div class="top">
+              <div><div class="br">وردية الصباح</div><div class="sub">فرع العليا · الرياض</div></div>
+              <span class="chip c-mut">لم تُسجّل بعد</span>
+            </div>
+            <div class="time mono">08:00<span class="to">—</span>17:00</div>
+            <div class="presence"><svg><use href="#i-pin"/></svg>أنت داخل نطاق الفرع · جاهز للتسجيل</div>
+            <button class="btn btn-brand"><svg><use href="#i-check"/></svg>تسجيل الحضور</button>
+          </div>
+
+          <div class="bhead"><div class="t">مهام اليوم <b>·&nbsp;5</b></div><span class="a">عرض الكل</span></div>
+
+          <div class="card task">
+            <svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="#eef1f0" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="#C4841A" stroke-width="4" stroke-dasharray="94" stroke-dashoffset="70" stroke-linecap="round" transform="rotate(-90 18 18)"/></svg>
+            <div class="mid">
+              <div class="tt">فحص درجة حرارة الثلاجات</div>
+              <div class="meta"><span class="chip c-bad">عالية</span><span class="dl"><svg><use href="#i-clock"/></svg>قبل 10:00</span><span class="chip c-warn">قيد التنفيذ</span></div>
+            </div>
+          </div>
+
+          <div class="card task">
+            <svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="#eef1f0" stroke-width="4"/></svg>
+            <div class="mid">
+              <div class="tt">تجهيز الفرع للافتتاح</div>
+              <div class="meta"><span class="chip c-warn">متوسطة</span><span class="dl"><svg><use href="#i-clock"/></svg>قبل 09:30</span><span class="chip c-mut">لم تبدأ</span></div>
+            </div>
+          </div>
+
+          <div class="card task">
+            <svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="#eef1f0" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="#1E8E5A" stroke-width="4" stroke-dasharray="94" stroke-dashoffset="0" transform="rotate(-90 18 18)"/></svg>
+            <div class="mid">
+              <div class="tt">جرد رفوف المشروبات</div>
+              <div class="meta"><span class="chip c-brand">بإثبات</span><span class="chip c-ok">بانتظار الموافقة</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <button class="tab on"><span class="ic"><svg><use href="#i-home"/></svg></span>يومك</button>
+          <button class="tab"><span class="ic"><svg><use href="#i-task"/></svg></span>المهام</button>
+          <button class="tab"><span class="ic"><svg><use href="#i-clock"/></svg></span>الحضور</button>
+          <button class="tab"><span class="ic"><svg><use href="#i-user"/></svg></span>حسابي</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 2) CHECK-IN (signature) -->
+    <div class="device">
+      <div class="cap">تسجيل الحضور <span class="k">Employee · Geofence</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar sb-light"><span>9:41</span><div class="r"><span class="bar" style="height:8px"></span><span class="bar" style="height:11px"></span><span class="bar" style="height:14px"></span><svg width="20" height="12" viewBox="0 0 24 14" style="margin-inline-start:4px"><rect x="1" y="1" width="19" height="12" rx="3" fill="none" stroke="#14201C" stroke-width="1.4"/><rect x="3" y="3" width="13" height="8" rx="1.5" fill="#14201C"/></svg></div></div>
+        <div class="appbar" style="color:var(--ink)">
+          <div class="abtitle">تسجيل الحضور</div>
+          <button class="iconbtn solid"><svg><use href="#i-x"/></svg></button>
+        </div>
+        <div class="body">
+          <div style="text-align:center;font-size:14px;color:var(--muted);margin-bottom:2px">فرع العليا</div>
+          <div class="geowrap">
+            <div class="geo">
+              <svg viewBox="0 0 236 236" width="236" height="236">
+                <circle cx="118" cy="118" r="112" fill="#1E8E5A" fill-opacity="0.05"/>
+                <circle cx="118" cy="118" r="112" fill="none" stroke="#1E8E5A" stroke-opacity="0.18" stroke-width="1.5"/>
+                <circle cx="118" cy="118" r="78" fill="#1E8E5A" fill-opacity="0.07"/>
+                <circle cx="118" cy="118" r="78" fill="none" stroke="#1E8E5A" stroke-opacity="0.28" stroke-width="1.5" stroke-dasharray="3 5"/>
+                <circle cx="118" cy="118" r="44" fill="#1E8E5A" fill-opacity="0.10"/>
+                <!-- branch center -->
+                <g transform="translate(118 118)"><rect x="-9" y="-9" width="18" height="18" rx="4" fill="#0C5A54"/><path d="M-3 2v-5h1M2 2v-6h1" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></g>
+                <!-- user pin (inside) -->
+                <g transform="translate(150 92)">
+                  <circle r="17" fill="#1E8E5A" fill-opacity="0.16"/>
+                  <path d="M0 -11 C6 -11 10 -7 10 -2 C10 4 0 12 0 12 C0 12 -10 4 -10 -2 C-10 -7 -6 -11 0 -11Z" fill="#1E8E5A"/>
+                  <circle cy="-2" r="3.4" fill="#fff"/>
+                </g>
+              </svg>
+              <div class="lab" style="align-content:end;padding-bottom:2px"></div>
+            </div>
+          </div>
+          <div style="text-align:center;margin:2px 0 18px">
+            <div style="font-size:14.5px;font-weight:700;color:var(--ok);display:inline-flex;gap:6px;align-items:center"><svg style="width:16px;height:16px"><use href="#i-check"/></svg>أنت داخل النطاق</div>
+            <div class="mono" style="font-size:12.5px;color:var(--muted);margin-top:3px">18 م من مركز الفرع</div>
+          </div>
+
+          <div class="card" style="padding:4px 16px;margin-bottom:14px">
+            <div class="kv"><span class="k"><svg><use href="#i-clock"/></svg>الوقت الآن</span><span class="v mono">08:03</span></div>
+            <div class="kv"><span class="k"><svg><use href="#i-cal"/></svg>الوردية</span><span class="v mono">08:00 — 17:00</span></div>
+            <div class="kv"><span class="k"><svg><use href="#i-phone"/></svg>الجهاز</span><span class="v" style="color:var(--ok)">مربوط<svg style="width:14px;height:14px"><use href="#i-check"/></svg></span></div>
+            <div class="kv"><span class="k"><svg><use href="#i-pin"/></svg>الموقع</span><span class="v" style="color:var(--ok)">تم التحقق<svg style="width:14px;height:14px"><use href="#i-check"/></svg></span></div>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center;background:var(--warn-50);color:var(--warn);font-size:12.5px;font-weight:600;padding:10px 12px;border-radius:11px;margin-bottom:14px">
+            <svg style="width:16px;height:16px;flex:none"><use href="#i-warn"/></svg>سيُسجَّل حضورك متأخرًا 3 دقائق عن بداية الوردية.
+          </div>
+          <button class="btn btn-brand"><svg><use href="#i-check"/></svg>تأكيد تسجيل الحضور</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 3) TASK DETAIL + PROOF -->
+    <div class="device">
+      <div class="cap">تفاصيل المهمة + الإثبات <span class="k">Employee · Task</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar sb-light"><span>9:41</span><div class="r"><span class="bar" style="height:8px"></span><span class="bar" style="height:11px"></span><span class="bar" style="height:14px"></span><svg width="20" height="12" viewBox="0 0 24 14" style="margin-inline-start:4px"><rect x="1" y="1" width="19" height="12" rx="3" fill="none" stroke="#14201C" stroke-width="1.4"/><rect x="3" y="3" width="13" height="8" rx="1.5" fill="#14201C"/></svg></div></div>
+        <div class="appbar" style="color:var(--ink)">
+          <div class="abtitle">تفاصيل المهمة</div>
+          <button class="iconbtn solid"><svg><use href="#i-x"/></svg></button>
+        </div>
+        <div class="body">
+          <div class="card" style="padding:16px;margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px">
+              <div style="font-size:16.5px;font-weight:700">فحص درجة حرارة الثلاجات</div>
+              <span class="chip c-warn">قيد التنفيذ</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="chip c-bad">أولوية عالية</span><span class="chip c-mut mono"><svg><use href="#i-clock"/></svg>&nbsp;قبل 10:00</span><span class="chip c-brand"><svg><use href="#i-pin"/></svg>داخل الفرع</span></div>
+          </div>
+
+          <div class="bhead" style="margin-bottom:8px"><div class="t">قائمة التحقق</div><span class="a mono" style="color:var(--muted)">2 / 3</span></div>
+          <div class="card" style="padding:4px 16px;margin-bottom:16px">
+            <div class="check done"><span class="box on"><svg><use href="#i-check"/></svg></span><span class="ct">قياس ثلاجة الألبان</span></div>
+            <div class="check done"><span class="box on"><svg><use href="#i-check"/></svg></span><span class="ct">قياس مجمّد اللحوم</span></div>
+            <div class="check"><span class="box"></span><span class="ct">صورة لشاشة الحرارة</span><span class="req">مطلوب</span></div>
+          </div>
+
+          <div class="bhead" style="margin-bottom:8px"><div class="t">إثبات العمل</div></div>
+          <div class="proofgrid">
+            <div class="proof-thumb">
+              <div class="img"><svg><use href="#i-cam"/></svg></div>
+              <div class="seal"><svg><use href="#i-shield"/></svg>موثّق · GPS + وقت</div>
+            </div>
+            <div class="proof-add">
+              <svg><use href="#i-cam"/></svg>
+              <span class="t">التقط صورة</span>
+              <span class="h">الكاميرا المباشرة فقط</span>
+            </div>
+          </div>
+
+          <div style="height:14px"></div>
+          <button class="btn btn-line" style="margin-bottom:10px;color:var(--muted)">أضف ملاحظة</button>
+          <button class="btn btn-brand"><svg><use href="#i-check"/></svg>إرسال للمراجعة</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 4) MANAGER APPROVALS -->
+    <div class="device">
+      <div class="cap">الموافقات <span class="k">Manager · Inbox</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar sb-dark"><span>9:41</span><div class="r"><span class="bar" style="height:8px"></span><span class="bar" style="height:11px"></span><span class="bar" style="height:14px"></span><svg width="20" height="12" viewBox="0 0 24 14" style="margin-inline-start:4px"><rect x="1" y="1" width="19" height="12" rx="3" fill="none" stroke="#fff" stroke-width="1.4"/><rect x="3" y="3" width="13" height="8" rx="1.5" fill="#fff"/></svg></div></div>
+        <div class="appbar brand">
+          <div class="abtitle">الموافقات</div>
+          <button class="iconbtn dotbadge"><svg><use href="#i-bell"/></svg></button>
+        </div>
+        <div class="body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span class="filter"><svg><use href="#i-filter"/></svg>فرع العليا</span>
+            <span class="mono" style="font-size:12px;color:var(--muted)">محدّث الآن</span>
+          </div>
+          <div class="summ"><span class="big mono">7</span><span class="tx">مهام بانتظار مراجعتك</span></div>
+
+          <div class="card appr">
+            <div class="h"><span class="av">س</span><div><div class="nm">سعود القحطاني</div><div class="sub">تجهيز الفرع للافتتاح</div></div><span class="tm">قبل 6 د</span></div>
+            <div class="work"><div class="pic"><svg><use href="#i-cam"/></svg></div><div><div class="wt">3 صور إثبات مرفقة</div><div class="wm mono">GPS مطابق · 07:58</div></div></div>
+            <div class="acts"><button class="btn btn-ok btn-sm"><svg><use href="#i-check"/></svg>اعتماد</button><button class="btn btn-line btn-sm" style="color:var(--bad)"><svg><use href="#i-x"/></svg>رفض</button></div>
+          </div>
+
+          <div class="card appr">
+            <div class="h"><span class="av">ف</span><div><div class="nm">فهد العتيبي</div><div class="sub">طلب تصحيح حضور</div></div><span class="tm">قبل 22 د</span></div>
+            <div class="work"><div class="pic" style="background:var(--warn-50);color:var(--warn)"><svg><use href="#i-clock"/></svg></div><div><div class="wt">تصحيح وقت الحضور</div><div class="wm">«تعطّل GPS، كنت داخل الفرع»</div></div></div>
+            <div class="acts"><button class="btn btn-ok btn-sm"><svg><use href="#i-check"/></svg>اعتماد</button><button class="btn btn-line btn-sm" style="color:var(--bad)"><svg><use href="#i-x"/></svg>رفض</button></div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <button class="tab on"><span class="ic"><svg><use href="#i-check"/></svg></span>الموافقات</button>
+          <button class="tab"><span class="ic"><svg><use href="#i-users"/></svg></span>الفريق</button>
+          <button class="tab"><span class="ic"><svg><use href="#i-chart"/></svg></span>التقارير</button>
+          <button class="tab"><span class="ic"><svg><use href="#i-user"/></svg></span>حسابي</button>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+
+  <!-- ============ WEB ============ -->
+  <div class="sec"><span class="n">لوحة المالك / المشرف</span><h2>Web Dashboard · Next.js</h2><span class="line"></span></div>
+
+  <div class="web">
+    <div class="cap">نظرة عامة <span class="k">Owner · Overview</span></div>
+    <div class="browser">
+      <div class="chrome"><div class="traffic"><i></i><i></i><i></i></div><div class="url">app.aratasks.com/overview</div><div style="width:54px"></div></div>
+      <div class="app">
+        <!-- sidebar (right in RTL) -->
+        <aside class="side">
+          <div class="brandrow"><span class="lg"><svg><use href="#i-shield"/></svg></span><div><div class="nm" dir="ltr" style="text-align:start">ARA Tasks</div><div class="en">منصّة إدارة الميدان</div></div></div>
+          <nav class="nav">
+            <a class="on"><svg><use href="#i-chart"/></svg>نظرة عامة</a>
+            <a><svg><use href="#i-bldg"/></svg>الفروع</a>
+            <a><svg><use href="#i-users"/></svg>الموظفون</a>
+            <a><svg><use href="#i-task"/></svg>المهام</a>
+            <a><svg><use href="#i-clock"/></svg>الحضور</a>
+            <a><svg><use href="#i-cal"/></svg>الورديات</a>
+            <a><svg><use href="#i-card"/></svg>الفوترة</a>
+            <a><svg><use href="#i-gear"/></svg>الإعدادات</a>
+          </nav>
+          <div class="who"><span class="av">ع</span><div><div class="nm">عبدالله المالكي</div><div class="rl">مالك الحساب</div></div></div>
+        </aside>
+
+        <!-- main -->
+        <main class="main">
+          <div class="topbar">
+            <div><h3>نظرة عامة</h3><div class="sub">الأحد 17 يوليو · 09:41</div></div>
+            <div class="tools">
+              <div class="period"><button class="on">اليوم</button><button>الأسبوع</button><button>الشهر</button></div>
+              <button class="tool"><svg><use href="#i-search"/></svg></button>
+              <button class="tool"><svg><use href="#i-bell"/></svg></button>
+            </div>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi">
+              <div class="kl"><span class="i" style="background:var(--ok-50);color:var(--ok)"><svg><use href="#i-users"/></svg></span>الحاضرون الآن</div>
+              <div class="num">128<span class="u"> / 150</span></div>
+              <div class="delta up"><svg><use href="#i-up"/></svg>85% من المتوقع</div>
+            </div>
+            <div class="kpi">
+              <div class="kl"><span class="i" style="background:var(--ok-50);color:var(--ok)"><svg><use href="#i-clock"/></svg></span>الالتزام بالمواعيد</div>
+              <div class="num">91<span class="u">%</span></div>
+              <div class="delta up"><svg><use href="#i-up"/></svg>+4% عن أمس</div>
+            </div>
+            <div class="kpi">
+              <div class="kl"><span class="i" style="background:var(--gold-50);color:var(--gold)"><svg><use href="#i-shield"/></svg></span>المهام بإثبات</div>
+              <div class="num">87<span class="u">%</span></div>
+              <div class="delta up"><svg><use href="#i-up"/></svg>+2%</div>
+            </div>
+            <div class="kpi">
+              <div class="kl"><span class="i" style="background:var(--bad-50);color:var(--bad)"><svg><use href="#i-warn"/></svg></span>مهام متأخرة</div>
+              <div class="num">12</div>
+              <div class="delta down"><svg><use href="#i-up"/></svg>3 حرجة</div>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div class="panel">
+              <div class="ph"><span class="t">مقارنة الفروع</span><span class="a">تقرير مفصّل</span></div>
+              <table>
+                <thead><tr><th>الفرع</th><th>الحضور</th><th>الالتزام</th><th>الإثبات</th><th>متأخرة</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><span class="brcell"><span class="d" style="background:var(--ok)"></span>العليا</span></td>
+                    <td class="num-c">38/40</td>
+                    <td><span class="barcell"><span class="bar"><i style="width:95%;background:var(--ok)"></i></span><span class="num-c">95%</span></span></td>
+                    <td class="num-c">92%</td><td class="num-c">1</td>
+                  </tr>
+                  <tr>
+                    <td><span class="brcell"><span class="d" style="background:var(--ok)"></span>النخيل</span></td>
+                    <td class="num-c">34/36</td>
+                    <td><span class="barcell"><span class="bar"><i style="width:90%;background:var(--ok)"></i></span><span class="num-c">90%</span></span></td>
+                    <td class="num-c">88%</td><td class="num-c">2</td>
+                  </tr>
+                  <tr>
+                    <td><span class="brcell"><span class="d" style="background:var(--warn)"></span>الروضة</span></td>
+                    <td class="num-c">30/38</td>
+                    <td><span class="barcell"><span class="bar"><i style="width:83%;background:var(--warn)"></i></span><span class="num-c">83%</span></span></td>
+                    <td class="num-c">84%</td><td class="num-c">3</td>
+                  </tr>
+                  <tr>
+                    <td><span class="brcell"><span class="d" style="background:var(--bad)"></span>الملقا</span></td>
+                    <td class="num-c">26/36</td>
+                    <td><span class="barcell"><span class="bar"><i style="width:72%;background:var(--bad)"></i></span><span class="num-c">72%</span></span></td>
+                    <td class="num-c">79%</td><td class="num-c">6</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="panel attn">
+              <div class="ph"><span class="t">يحتاج انتباهك</span></div>
+              <div class="alert"><span class="ai" style="background:var(--bad-50);color:var(--bad)"><svg><use href="#i-warn"/></svg></span><div><div class="at">فرع الملقا — التزام 72%</div><div class="as">انخفاض 11% خلال 3 أيام</div></div></div>
+              <div class="alert"><span class="ai" style="background:var(--warn-50);color:var(--warn)"><svg><use href="#i-clock"/></svg></span><div><div class="at">3 حالات تأخر متكرر</div><div class="as">نفس الموظفين هذا الأسبوع</div></div></div>
+              <div class="alert"><span class="ai" style="background:var(--warn-50);color:var(--warn)"><svg><use href="#i-task"/></svg></span><div><div class="at">6 مهام متأخرة دون إسناد</div><div class="as">فرع الملقا · وردية المساء</div></div></div>
+              <div class="alert"><span class="ai" style="background:var(--brand-50);color:var(--brand)"><svg><use href="#i-shield"/></svg></span><div><div class="at">مراجعة break-glass واحدة</div><div class="as">دعم فني · أُغلقت 08:15</div></div></div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

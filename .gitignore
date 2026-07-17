@@ -1,0 +1,60 @@
+# --- Dependencies ---
+node_modules/
+.pnp/
+.pnp.js
+.yarn/
+
+# --- Build output ---
+dist/
+build/
+out/
+.next/
+.turbo/
+
+# --- Test / coverage ---
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# --- Environment & secrets (NEVER commit) ---
+# All secrets come from the cloud secret manager. See CLAUDE.md.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Logs ---
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# --- Terraform (state can contain secrets) ---
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Editors / IDE ---
+.idea/
+.vscode/
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# --- Misc caches ---
+.cache/
+.eslintcache
+tsconfig.tsbuildinfo
