@@ -1,0 +1,6 @@
+{
+  // Used by `nest build`. Same settings as tsconfig.json, but excludes tests
+  // and specs so they never land in dist/. (Nest CLI prefers this file when present.)
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "dist", "test", "**/*.spec.ts", "**/*.e2e-spec.ts"]
+}

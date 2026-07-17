@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "ARA Tasks — Node library",
+  // Emits CommonJS + .d.ts so both the NestJS services (CJS) and the Next.js apps
+  // (bundler resolution) consume packages the same way.
+  "extends": "./base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node"
+  }
+}

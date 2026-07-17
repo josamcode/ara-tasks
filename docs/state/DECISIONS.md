@@ -14,6 +14,8 @@
 | Date | Decision | Rationale |
 |---|---|---|
 | 2026-07-17 | **Mobile app kept in a separate repo (`ara-mobile`).** This repo scaffolds no Dart/Flutter; `S0-02` (Flutter scaffold + `ara_ui`/`ara_core`) is owned by that repo. | Turborepo/pnpm does not manage Dart; melos is Dart-native. Forcing Flutter into a JS monorepo buys nothing and costs tooling friction on both sides. Consistent with Tech Stack §13. Contract between the repos stays the OpenAPI/Zod API contract in `@ara/types` — the mobile repo consumes the API, not the packages. |
+| 2026-07-17 (S0-01) | **Version pins at init: TypeScript `5.9.3`, `@types/node` `24.x`, ESLint `9.39.5`.** Not npm `latest`. | The version policy (Tech Stack §5, §17) is *lock the major line, pin the patch*. At init, `latest` had drifted off the locked lines: **TypeScript 7.0.2** (stack locks TS 5.x — TS 7 is a stack change, not a default) and **`@types/node` 26.x** (runtime is Node 24 LTS; 26 types on a 24 runtime is a lie to the compiler). **ESLint** is pinned to 9.x because `eslint-config-next@16.2.10` is incompatible with ESLint 10 (throws `scopeManager.addGlobals is not a function` — its babel parser returns a scope manager ESLint 10 rejects). All three are *within* the locked stack (choosing the compatible line of an already-locked tool), not deviations from it. Revisit ESLint 10 when `eslint-config-next` supports it. |
+| 2026-07-17 (S0-01) | **Committed build config keeps stack defaults: Turborepo as orchestrator, Next 16 Turbopack as the build engine.** Did **not** switch to `pnpm`-only or hardcode `next build --webpack`, despite both failing to run on the current dev machine (see the environment blocker below). | Turborepo is locked (Tech Stack §13) and Turbopack is the Next 16 default; both work in CI/Linux and on any machine without the restrictive Application Control policy. Baking a machine-specific workaround into the shared config would degrade CI and every other environment to satisfy one host's security policy. The blocker is an environment issue to fix at the environment, not in the repo. |
 
 ---
 
@@ -49,3 +51,11 @@ These are **not** decisions to make in code. They need a contract or a complianc
 |---|---|---|
 | **Hosting region** — GCP Dammam (KSA) vs AWS Bahrain (me-south-1) / UAE (me-central-1) | Nothing in code; **must be settled before production** | Confirm the region carries the PDPL/compliance certs the target clients require. Most important open item (Tech Stack §16). |
 | **SMS vendor** — Unifonic vs Taqnyat (Twilio fallback) | `S0-15` proceeds on a sandbox adapter meanwhile | Pick at contract stage on price + deliverability + OTP support. |
+
+---
+
+## Environment constraints (not stack decisions — but they shape how we work)
+
+| Discovered | Constraint | Impact & workaround |
+|---|---|---|
+| 2026-07-17 (S0-01) | **The dev machine runs an Application Control policy (Windows Defender Application Control / AppLocker) that blocks unsigned native executables under `node_modules`.** Confirmed error: *"An Application Control policy has blocked this file."* | Blocks **`turbo`** (native binary → `spawn UNKNOWN`, so *all* `turbo …` commands) and Next's default **Turbopack** (needs native bindings; WASM SWC loads but Turbopack has no WASM fallback). tsc / nest / eslint (pure Node) are unaffected. **Not a code defect** — verified every task turbo would run passes via `pnpm -r run {build,lint,typecheck}` and `next build --webpack`. **To fix at the environment (pick one):** (a) allowlist the required native binaries in the WDAC/AppLocker policy — e.g. `@turbo/windows-64`, `@next/swc-win32-x64-msvc`; (b) develop in **WSL2** or a **Linux container**; (c) rely on **CI** (GitHub Actions, Linux) for `turbo build`. **Interim local commands:** `pnpm -r run <task>` and `next build --webpack`. This will recur for future native tooling (e.g. esbuild, drizzle-kit native bits), so resolving it at the environment is the durable fix. |

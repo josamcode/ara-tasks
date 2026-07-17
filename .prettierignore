@@ -1,0 +1,13 @@
+# The 16 design documents are the source of truth and are never reformatted.
+# Moving them was allowed; changing a single byte of their content is not.
+docs/design/
+
+# Generated output
+**/dist/
+**/.next/
+**/.turbo/
+**/coverage/
+**/next-env.d.ts
+
+# Lockfile
+pnpm-lock.yaml

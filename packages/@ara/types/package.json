@@ -1,0 +1,30 @@
+{
+  "name": "@ara/types",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Zod schemas + shared types. THE API contract — defined once here, imported by web and api. Never duplicated.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@ara/config": "workspace:*",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3"
+  }
+}

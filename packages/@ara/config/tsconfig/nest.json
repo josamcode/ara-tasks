@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "ARA Tasks — NestJS service",
+  // Decorator metadata is what NestJS DI reads at runtime.
+  // strictPropertyInitialization is off because Nest assigns injected members
+  // through the constructor, after the property declaration.
+  "extends": "./base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "types": ["node"]
+  }
+}

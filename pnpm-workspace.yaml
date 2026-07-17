@@ -1,0 +1,15 @@
+# Workspace membership. `apps/operator-api` is intentionally absent: it is a
+# scaffold folder only until S7-01 initializes it as a real service.
+packages:
+  - 'apps/*'
+  - 'packages/@ara/*'
+
+# pnpm blocks dependency lifecycle scripts by default (supply-chain hardening).
+# Anything enabled here is a deliberate, reviewed exception — not a default.
+# Both below arrive transitively from the locked stack and compile native binaries:
+allowBuilds:
+  # Native image pipeline. Pulled in by Next.js for image optimization; also the
+  # locked choice for proof thumbnails (Tech Stack §8, S3-06).
+  sharp: true
+  # Native module resolver behind eslint-config-next's TypeScript import resolver.
+  unrs-resolver: true
