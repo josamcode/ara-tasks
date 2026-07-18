@@ -58,3 +58,36 @@ Initialized the JS monorepo: root workspace config, 6 workspaces, and shared too
 - All build output (`dist/`, `.next/`, `next-env.d.ts`) is gitignored; working tree clean of artifacts.
 
 **Next:** `S0-03` — Dockerfiles (`node:24` pinned) + local `docker-compose` (postgres+postgis, redis, minio). Building in Docker/Linux also sidesteps the local native-binary block.
+
+---
+
+## 2026-07-18 — S0-03: Dockerfiles + local Docker Compose stack
+
+Containerized the three Node apps and delivered a one-command local dev stack. `docker compose up -d --build --wait` brings up **all six services healthy**: postgres (PG18 + PostGIS 3.6), redis, minio, api, web, operator — internal `ara-net` network, service-DNS wiring, health-gated startup, persistent named volumes.
+
+**What landed:**
+- **Three multi-stage Dockerfiles** (`apps/{api,web,operator}/Dockerfile`), build context = repo root. Pattern: `base` (Node 24 + Corepack pnpm 11.9.0) → `pruner` (`turbo prune <app> --docker`) → `installer` (`pnpm install --frozen-lockfile` + `turbo run build --filter`) → `runner` (non-root). api runtime = `pnpm deploy --legacy --prod` then `node dist/main.js`; web/operator = Next `output:'standalone'` → `node apps/<app>/server.js`.
+- **`docker-compose.yml`** (root) — 6 services, named volumes (`ara-postgres-data`/`ara-redis-data`/`ara-minio-data`), `ara-net` bridge, `depends_on … condition: service_healthy`, `${VAR:-default}` local defaults.
+- **`.dockerignore`** (root) — excludes node_modules/build outputs/VCS/env/docs so contexts are small and deterministic.
+- **`.env.example`** (root) — documents every local default (git-ignore already whitelists it).
+- **Next config edit** — added `output:'standalone'` + `outputFileTracingRoot` to `apps/web` and `apps/operator` `next.config.ts`. Used `path.join(process.cwd(), '..','..')` (NOT `__dirname`: the shared tsconfig is `module:esnext` + `moduleDetection:force`, so the config is typed as ESM and `__dirname` fails typecheck; turbo always runs `next build` from the app dir so cwd is stable).
+- **Image pins (tag + immutable digest):** node `24-bookworm-slim` (24.18.0), `postgis/postgis:18-3.6`, `redis:7.4.9-alpine`, `minio/minio:RELEASE.2025-09-07T16-13-09Z`.
+
+**Problems hit and fixed (for the next person):**
+1. **PostgreSQL 18 changed the data-dir convention.** Mounting the volume at `/var/lib/postgresql/data` (the pre-18 norm) makes the PG18 entrypoint refuse to start ("in 18+, these images store data in a major-version-specific directory"). **Fix:** mount at **`/var/lib/postgresql`** — the image then stores data in a versioned subdir. This bit us as a cascade: postgres exited → api (depends on it) never started → web (depends on api) never started; only redis/minio/operator came up.
+2. **`pnpm deploy` needs `--legacy` on pnpm 10+.** Bare `pnpm deploy --prod` errors `ERR_PNPM_DEPLOY_NONINJECTED_WORKSPACE` unless workspaces set `inject-workspace-packages=true`. Added `--legacy`.
+3. **PostGIS 3.5 has no PG18 image.** `postgis/postgis:18-3.5` is 404; the PG18 line ships **3.6** (`18-3.6`). Still within the locked "PostGIS 3.x". Verified `SELECT PostGIS_Version()` → `3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1`.
+4. **Port collision.** Both Next apps default to container port 3000. Kept web on host 3000 and api on its native 3001; moved **operator to host 3002** (`3002:3000`). Updated the verification `curl` accordingly.
+5. **MinIO image tooling.** A first (mangled) probe suggested no `curl`/`mc`; the real `minio/minio` image ships `bash`, `curl`, and `mc`, so the healthcheck is a clean `curl -f /minio/health/live`.
+6. **Running the gates in WSL.** The Windows host blocks turbo (WDAC) and there's no apt/`/usr/bin/node` in WSL — but **nvm** is installed with Node 24.18.0. Non-interactive `bash -lc` picks up the Windows `pnpm` shim from `/mnt/c/...` (→ `node: not found`); sourcing `~/.nvm/nvm.sh` first fixes it. Also: complex quoting corrupts through `wsl.exe bash -lc "…"` — run multi-step logic from a `.sh` file instead.
+
+**Verification (WSL2 Ubuntu, Docker 29.5 / Compose v5.1):**
+- `docker compose config --quiet` → 0; `--services` → minio/operator/postgres/redis/api/web.
+- `docker compose up -d --build --wait` → 0; `docker compose ps` → 6/6 `running (healthy)`.
+- `pg_isready` → accepting connections; PostGIS → `3.6 …`; `redis-cli ping` → `PONG`; MinIO `/minio/health/live` → 0; web `:3000` → 200; operator `:3002` → 200; api `:3001` → 404 (empty scaffold, reachable).
+- Named volumes persist across `docker compose down` (verified present after down).
+- Monorepo gates (WSL, nvm node): `turbo typecheck` 7/7, `turbo lint` 6/6, `turbo build` 5/5. `git diff --check` clean; working tree has only the intended new/changed files.
+
+**Scope note:** infra only — no schema/migrations, auth, RBAC, business logic, UI, cloud infra, or CI were added. `operator-api` left untouched (not a workspace member yet).
+
+**Next:** `S0-04` — Terraform base infra in-region (managed PG+PostGIS, Redis, private bucket, secret manager).

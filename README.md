@@ -65,6 +65,44 @@ The stack is **locked** — see [`docs/design/Ara_Tasks_Tech_Stack_Finalization.
 
 ---
 
+## Local development stack (Docker)
+
+`S0-03` ships a one-command local environment: **PostgreSQL 18 + PostGIS 3.6, Redis 7.4, MinIO (S3-compatible)**, plus the three Node apps (**api, web, operator**), wired on an internal network with health-gated startup. Requires Docker (on Windows: Docker Desktop + WSL2). Image versions are pinned by digest; the app images build from each app's `Dockerfile` with the repo root as build context.
+
+```bash
+# Start the whole stack (builds app images on first run) and wait until healthy
+docker compose up -d --build --wait
+
+# Status + health
+docker compose ps
+
+# Follow logs — all services, or one
+docker compose logs -f
+docker compose logs -f api
+
+# Stop — KEEPS data in the named volumes
+docker compose down
+
+# Full reset — stop AND delete the named volumes (Postgres/Redis/MinIO data)
+docker compose down -v
+```
+
+**Exposed local URLs / ports** (override with a `.env` — see [`.env.example`](.env.example)):
+
+| Service | URL / port | Notes |
+|---|---|---|
+| web — tenant dashboard | http://localhost:3000 | Next.js |
+| operator console | http://localhost:3002 | Next.js — separate plane |
+| api — tenant backend | http://localhost:3001 | NestJS; `/` returns `404` until routes land |
+| Postgres + PostGIS | `localhost:5432` | local defaults: user/db `ara` / `ara_tasks` |
+| Redis | `localhost:6379` | |
+| MinIO — S3 API | http://localhost:9000 | health: `/minio/health/live` |
+| MinIO — console | http://localhost:9001 | login = `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` |
+
+All defaults are **non-production** and safe to run as-is. Real secrets come from the cloud secret manager, never a committed `.env` (see [`CLAUDE.md`](CLAUDE.md) rule 9).
+
+---
+
 ## Contributing
 
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) — `feat(attendance): …`, `fix(auth): …`, `chore: …`
