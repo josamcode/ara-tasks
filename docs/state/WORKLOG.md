@@ -192,3 +192,22 @@ Delivered the CI/CD pipeline: one GitHub Actions workflow validating every chang
 **Remote acceptance — PENDING (honest gate).** No authenticated GitHub/Coolify access in this environment and the ticket forbids requesting/printing credentials, so the GitHub Environments, their secrets/vars, and the Coolify deploy resources/webhooks are **not yet created**. Repository implementation is complete and locally verified; **`merge to main → staging` is NOT yet proven end-to-end.** The exact remaining UI steps are in `.github/CI_CD_SETUP.md`.
 
 **Next:** `S0-09` — Drizzle setup + `drizzle-kit` migration pipeline + base migration (drops straight into this pipeline's migration stage).
+
+---
+
+## 2026-07-18 — S0-05: committed, pushed, PR #3 opened; PR-validation green on GitHub
+
+Published the verified S0-05 change set on a feature branch and opened its Pull Request — **no merge, no remote deployment**.
+
+- **Reran the full local S0-05 suite** before committing — **every command exit 0** (15/15): `install --frozen-lockfile`, `format:check`, `lint`, `typecheck`, `test`, `build`, `docker compose config` (root) + (root+staging), `validate-workflows.sh` (actionlint 1.7.7 clean), `run-migration-stage.sh` (honest S0-09 notice), `trigger-coolify.sh --dry-run`, staging stack `up -d --wait` (6/6 healthy), `verify-deployment.sh` (web 200 / operator 200 / api 404), `down`, `git diff --check`.
+- **Branch:** `feat/s0-05-github-actions-cicd` (off `main`). **Commit:** `d13ebf8` `feat(ci): complete S0-05 GitHub Actions pipeline`.
+- **Staged exactly the 14 approved paths** with explicit `git add -- <paths>` (the 13 add/modify) + `git add -u -- .github/workflows/.gitkeep` (the deletion) — never `git add .`/`-A`. Verified: `git diff --cached --name-only | wc -l` == **14**, zero `.claude/` entries, cached `--check` clean, staged secret scan clean. Scripts committed `100755` (executable).
+- **Pushed** with upstream tracking (no force). The `gh` token carries the **`workflow`** scope, required to push `.github/workflows/`.
+- **PR [#3](https://github.com/josamcode/ara-tasks/pull/3)** into `main` (title `feat(ci): complete S0-05 GitHub Actions pipeline`).
+- **PR checks (GitHub runners):** `Validate (lint · typecheck · test · build)` → **pass (43s)**; `Deploy` → **skipping** (gated `if: github.event_name != 'pull_request'`). This **remotely proves the secret-free PR-validation path**: a PR runs validation only and the deploy job — the only one referencing environment secrets — never runs. `gh pr checks --watch --fail-fast` exit 0.
+- **No merge.** `main` and `origin/main` remain at `d3c626c`; `d13ebf8` exists only on the feature branch (+ its remote). No amend/rebase/force-push.
+- Corrected the committed `PROJECT_STATE.md` (the earlier "Not committed/pushed" line became stale once pushed) to record the commit hash, open PR #3, and the green remote PR-validation. This state-only follow-up is committed separately on the same branch (state rule).
+
+**Remote acceptance — still PENDING.** `merge to main → staging` is **not** proven: the `development`/`staging` GitHub Environments, their secrets/vars, and the Coolify deploy resources/webhooks are not yet created (needs UI/credential access — `.github/CI_CD_SETUP.md`). Not claimed as done.
+
+**Next:** `S0-09` — Drizzle setup + `drizzle-kit` migration pipeline + base migration.
