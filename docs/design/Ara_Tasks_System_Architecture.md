@@ -212,6 +212,8 @@ Everything else stays in the monolith. **Don't extract on a hunch — extract on
 | How is it kept modular? | Dependency rules enforced in **CI** (build fails on violation) |
 | How does it scale later? | **Extract along pre-drawn seams** — AI → Reports → Notifications → Attendance — only when a trigger fires |
 
+> **Deployment note (dev + staging, `S0-04`):** the two deployables run as **separate Coolify services on separate domains** on the existing VPS via Docker Compose — the physical two-plane separation (§2) holds off the managed cloud, and the operator plane still has no direct tenant-DB access. This is an infra baseline only: the modular-monolith style, module boundaries, and dependency rules above are **unchanged**. Managed cloud + Terraform remain the deferred production path (see *System Design* §9, *Tech Stack* §11, `docs/state/DECISIONS.md`).
+
 ---
 
 *Next in the chain: the **Data Model / ERD** (entities, ownership per module, tenant keys, indexes), then the **API contract** (endpoints per module), then the **prioritized backlog**.*

@@ -22,7 +22,7 @@
 | S0-01 | Init monorepo (pnpm + Turborepo): `apps/api,web,operator`, `packages/@ara/ui,types,config` | infra | `pnpm i` + `turbo build` pass; shared tsconfig/eslint/prettier |
 | S0-02 | Scaffold Flutter app + `ara_ui`, `ara_core` packages | mob | app runs on iOS+Android sim |
 | S0-03 | Dockerfiles (`node:24` pinned) + local `docker-compose` (postgres+postgis, redis, minio) | infra | `docker compose up` gives a full local stack |
-| S0-04 | Terraform base infra in-region: managed PG+PostGIS, Redis, private bucket, secret manager | infra | `terraform apply` provisions dev env |
+| S0-04 | Rebaseline dev/staging infra on the **existing VPS** (Ubuntu 24.04 + Coolify + Docker Compose): `deploy/vps/` Coolify override reusing the S0-03 images — self-hosted PG+PostGIS, Redis, MinIO kept **private**; api/web/operator exposed via Coolify's proxy on **separate domains**. Managed cloud + Terraform deferred to production. | infra | `docker compose -f docker-compose.yml -f deploy/vps/docker-compose.staging.yml config`→valid, `build`→ok, `up -d --wait`→6/6 healthy; PG & Redis publish **no** host ports and MinIO's S3 API is loopback-only (no public data-service binding); Coolify runbook + backup/restore + rollback exist under `deploy/vps/` |
 | S0-05 | GitHub Actions CI: lint→typecheck→test→build→migrate→deploy dev/staging | infra | merge to main deploys to staging |
 | S0-06 | Config + secret-manager wiring; zero secrets in code/env-in-git | infra·sec | app reads all secrets from the manager |
 | S0-07 | Observability baseline: Sentry + pino structured logs (api/web/mobile) | infra | errors + logs visible in dashboards |

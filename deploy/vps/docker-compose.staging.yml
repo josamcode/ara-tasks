@@ -1,0 +1,132 @@
+# ARA Tasks — VPS / Coolify STAGING override (S0-04).
+# =============================================================================
+# This is an ADDITIVE override layered on the root docker-compose.yml (S0-03):
+#
+#   docker compose -f docker-compose.yml -f deploy/vps/docker-compose.staging.yml <cmd>
+#
+# It REUSES the S0-03 build (each app's `build:`/Dockerfile is inherited from the
+# root file — no application build logic is duplicated here) and only adjusts the
+# runtime posture for a shared VPS running Coolify:
+#
+#   • Data services (postgres, redis, minio) are PRIVATE — reachable only over the
+#     internal `ara-net` Docker network, never published to the public internet.
+#   • Application services (api, web, operator) are exposed to Coolify's reverse
+#     proxy, which terminates TLS and routes each DOMAIN → container over the
+#     Docker network. Domains and secrets are supplied in Coolify — never in Git.
+#   • Restart policy, health checks (inherited), digest-pinned images (inherited),
+#     and conservative CPU/memory limits appropriate for a SHARED VPS.
+#
+# Port bindings below are pinned to 127.0.0.1 (loopback) ONLY so the ticket's LOCAL
+# verification (curl localhost:9000/3000/3001/3002) works on the dev machine while
+# NOTHING is exposed on the public interface. On the VPS these loopback bindings are
+# inert — Coolify's proxy reaches the app containers over the Docker network via the
+# labels it injects when you set a domain, and MinIO is reached at http://minio:9000
+# on ara-net. Coolify may additionally attach its proxy network at deploy time.
+#
+# Compose merges list fields by APPENDING, so the root file's public 0.0.0.0 port
+# bindings are removed with the `!reset` / `!override` merge tags (Compose ≥ 2.24).
+#
+# NON-SECRET FILE. Real secrets (DB/MinIO/JWT/provider keys) come from Coolify's
+# encrypted environment — see deploy/vps/README.md and deploy/vps/.env.staging.example.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 18 + PostGIS — PRIVATE. No host port; only ara-net reaches it.
+  # (Verified locally via `docker compose exec postgres …`, not a host port.)
+  # ---------------------------------------------------------------------------
+  postgres:
+    ports: !reset null
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+        reservations:
+          memory: 256M
+
+  # ---------------------------------------------------------------------------
+  # Redis — PRIVATE. No host port; only ara-net reaches it.
+  # ---------------------------------------------------------------------------
+  redis:
+    ports: !reset null
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M
+
+  # ---------------------------------------------------------------------------
+  # MinIO (S3) — PRIVATE to the app plane over ara-net (http://minio:9000).
+  # The S3 API is bound to LOOPBACK ONLY for the local health check; the console
+  # (9001) is not published. Not reachable from the public internet.
+  # ---------------------------------------------------------------------------
+  minio:
+    ports: !override
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # ---------------------------------------------------------------------------
+  # Tenant API (NestJS). Exposed to Coolify's proxy; loopback host port for local
+  # verification only. On the VPS, Coolify routes the API domain → container:3001.
+  # ---------------------------------------------------------------------------
+  api:
+    ports: !override
+      - "127.0.0.1:${API_PORT:-3001}:3001"
+    expose:
+      - "3001"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          memory: 128M
+
+  # ---------------------------------------------------------------------------
+  # Tenant web dashboard (Next.js). Its OWN domain via Coolify. Separate plane
+  # from the operator console — no shared session, route, or security boundary.
+  # ---------------------------------------------------------------------------
+  web:
+    ports: !override
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    expose:
+      - "3000"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # ---------------------------------------------------------------------------
+  # Operator console (Next.js). SEPARATE plane → SEPARATE domain in Coolify.
+  # Never merged with the tenant web app's session/routes.
+  # ---------------------------------------------------------------------------
+  operator:
+    ports: !override
+      - "127.0.0.1:${OPERATOR_PORT:-3002}:3000"
+    expose:
+      - "3000"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          memory: 128M
