@@ -117,6 +117,29 @@ Isolation from the other projects on this VPS is the whole point — keep ARA Ta
 
 ---
 
+## CI/CD — deployment is driven by GitHub Actions (S0-05)
+
+From `S0-05` on, **deployment flows only through the GitHub Actions pipeline**
+([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)), so every deploy passes the
+`lint → typecheck → test → build → migrate` gates first. The full one-time wiring is in
+[`.github/CI_CD_SETUP.md`](../../.github/CI_CD_SETUP.md); the Coolify-side essentials:
+
+1. Create **two separate** Coolify resources in the isolated `ara-tasks` project — one **`staging`** (tracking
+   branch **`main`**, §6 of the setup doc) and one **`development`** — with separate volumes/data.
+2. For each, get its **deploy webhook URL** and create a Coolify API token with the **minimum `deploy`
+   permission only**. These become the `COOLIFY_WEBHOOK` / `COOLIFY_TOKEN` **secrets** on the matching GitHub
+   Environment (`staging` / `development`).
+3. **Turn OFF Coolify "Auto Deploy" / deploy-on-push** on both resources (and remove any Coolify Git webhook that
+   deploys directly). Otherwise a raw push to `main` could deploy **around** the CI gates. GitHub Actions calls
+   the deploy webhook itself, only **after** validation succeeds.
+4. Assign domains in Coolify as in §4 above; put the same public URLs into the GitHub Environment **variables**
+   (`WEB_URL`, `API_URL`, `OPERATOR_URL`, `API_EXPECTED_STATUS`) used by the pipeline's post-deploy verification.
+
+Result: **a merge to `main` deploys to staging**; `development` deploys only via a manual `workflow_dispatch`.
+The manual CLI deploy in §5/§7 remains available for break-glass, but the normal path is the pipeline.
+
+---
+
 ## Guardrails on the shared VPS
 
 - Deploy **only** into the isolated ARA Tasks project/environment. Do not touch other projects' containers,

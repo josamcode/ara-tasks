@@ -41,7 +41,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
+          cpus: '1.0'
           memory: 1024M
         reservations:
           memory: 256M
@@ -55,7 +55,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: '0.5'
           memory: 256M
         reservations:
           memory: 64M
@@ -67,12 +67,12 @@ services:
   # ---------------------------------------------------------------------------
   minio:
     ports: !override
-      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - '127.0.0.1:${MINIO_API_PORT:-9000}:9000'
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: '0.5'
           memory: 512M
         reservations:
           memory: 128M
@@ -83,14 +83,14 @@ services:
   # ---------------------------------------------------------------------------
   api:
     ports: !override
-      - "127.0.0.1:${API_PORT:-3001}:3001"
+      - '127.0.0.1:${API_PORT:-3001}:3001'
     expose:
-      - "3001"
+      - '3001'
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "1.0"
+          cpus: '1.0'
           memory: 768M
         reservations:
           memory: 128M
@@ -101,14 +101,14 @@ services:
   # ---------------------------------------------------------------------------
   web:
     ports: !override
-      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+      - '127.0.0.1:${WEB_PORT:-3000}:3000'
     expose:
-      - "3000"
+      - '3000'
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.75"
+          cpus: '0.75'
           memory: 512M
         reservations:
           memory: 128M
@@ -119,14 +119,14 @@ services:
   # ---------------------------------------------------------------------------
   operator:
     ports: !override
-      - "127.0.0.1:${OPERATOR_PORT:-3002}:3000"
+      - '127.0.0.1:${OPERATOR_PORT:-3002}:3000'
     expose:
-      - "3000"
+      - '3000'
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.75"
+          cpus: '0.75'
           memory: 512M
         reservations:
           memory: 128M

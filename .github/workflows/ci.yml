@@ -1,0 +1,157 @@
+# ARA Tasks — CI/CD pipeline (S0-05)
+# =============================================================================
+# One pipeline, three trusted triggers:
+#
+#   • pull_request        → VALIDATION ONLY. No environment, no secrets, no deploy.
+#   • push (branch: main) → validate → automatic deploy to the `staging` environment.
+#   • workflow_dispatch   → validate → manual deploy to `development` OR `staging`.
+#
+# Security model (why PRs cannot reach deployment secrets):
+#   1. This uses `pull_request`, NOT `pull_request_target` — fork PRs run with a
+#      read-only token and NEVER receive repository/environment secrets.
+#   2. The `validate` job declares no `environment:` and reads no secrets.
+#   3. The `deploy` job (the only job that references environment secrets) is gated
+#      by `if: github.event_name != 'pull_request'`, so it never runs for a PR.
+#   4. GitHub only exposes an Environment's secrets to a job that names that
+#      Environment; deployment branch policies (staging ⇒ main) are the backstop.
+#
+# All third-party/first-party actions are pinned to an immutable full commit SHA
+# with the verified release tag in a trailing comment (no floating branches/tags).
+# =============================================================================
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to after the validation gates pass'
+        type: choice
+        options:
+          - development
+          - staging
+        default: development
+        required: true
+
+# Least privilege by default: the whole pipeline only needs to read the repo.
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # VALIDATE — runs on every trigger (PR, push, dispatch). No secrets. No deploy.
+  # Stale runs for the same ref are cancelled to save minutes.
+  # ---------------------------------------------------------------------------
+  validate:
+    name: Validate (lint · typecheck · test · build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    concurrency:
+      group: validate-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up pnpm (pinned via package.json packageManager)
+        uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
+
+      - name: Set up Node 24 (repo-pinned line) + pnpm cache
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      # --- Validation gates, in the required order --------------------------
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      # --- Compose validation (both configurations render) ------------------
+      - name: Validate root compose (S0-03 local stack)
+        run: docker compose -f docker-compose.yml config --quiet
+
+      - name: Validate staging compose (root + VPS/Coolify override)
+        run: >-
+          docker compose -f docker-compose.yml
+          -f deploy/vps/docker-compose.staging.yml config --quiet
+
+  # ---------------------------------------------------------------------------
+  # DEPLOY — never runs for a pull_request.
+  #   push → staging (automatic);  workflow_dispatch → chosen environment.
+  # Deployments are serialized per environment and an in-progress deploy is
+  # NEVER cancelled (cancel-in-progress: false).
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy
+    needs: validate
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    # push (main) always targets staging; dispatch targets its chosen input.
+    environment:
+      name: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment) || 'staging' }}
+      url: ${{ vars.WEB_URL }}
+    concurrency:
+      group: deploy-${{ (github.event_name == 'workflow_dispatch' && inputs.environment) || 'staging' }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up pnpm (pinned via package.json packageManager)
+        uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
+
+      - name: Set up Node 24 (repo-pinned line) + pnpm cache
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      # Migration stage. Today this is an honest no-op that emits a pending
+      # notice; S0-09 activates real CI migrations by adding the canonical
+      # `db:migrate:ci` script to @ara/api (and, here, the migration env such as
+      # DATABASE_URL) — no other pipeline change is required.
+      - name: Database migration stage (S0-09 gate)
+        run: bash scripts/ci/run-migration-stage.sh
+
+      # Trigger Coolify only after validation + migrations succeed. Secrets are
+      # environment-scoped; the script never prints the webhook URL or token.
+      - name: Trigger Coolify deployment
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: bash scripts/ci/trigger-coolify.sh
+
+      # Bounded, deterministic post-deployment verification.
+      - name: Verify deployment reachability
+        env:
+          WEB_URL: ${{ vars.WEB_URL }}
+          API_URL: ${{ vars.API_URL }}
+          OPERATOR_URL: ${{ vars.OPERATOR_URL }}
+          API_EXPECTED_STATUS: ${{ vars.API_EXPECTED_STATUS || '404' }}
+        run: bash scripts/ci/verify-deployment.sh

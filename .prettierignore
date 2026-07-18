@@ -11,3 +11,7 @@ docs/design/
 
 # Lockfile
 pnpm-lock.yaml
+
+# Harness-managed local settings — not part of the project; never reformatted.
+# (Absent from CI checkouts; this only keeps local `format:check` honest.)
+.claude/
