@@ -246,6 +246,10 @@ flowchart LR
 
 ## 9. Infrastructure, Hosting & Delivery
 
+**Current environment — dev + staging (owner-approved, `S0-04`):** the **existing Hostinger VPS** (Ubuntu 24.04) running **Coolify + Docker Compose**. **PostgreSQL 18 + PostGIS, Redis, and MinIO (S3-compatible) are self-hosted** as containers and kept **private** (internal Docker network only); only the tenant api/web and the operator console are exposed through Coolify's reverse proxy, each on its own domain — preserving the two-plane boundary. ARA Tasks is **isolated** on the shared VPS and does not touch other projects; secrets come from **Coolify's encrypted environment**. The managed-cloud design below is **deferred** until production scale / PDPL-cert / reliability needs justify it. See [`deploy/vps/`](../../deploy/vps/) and `docs/state/DECISIONS.md`.
+
+**Production target (deferred managed-cloud evolution path):**
+
 - **Hosting (residency-driven):** a major cloud with a **KSA/GCC region** — **Google Cloud (Dammam, KSA)** or **AWS (Bahrain / UAE)**; local providers (STC Cloud, Oracle Jeddah) are options if a client demands in-Kingdom certification. **PDPL residency drives this choice**, not cost (`LOC-09`, `BR-C-03`).
 - **Compute:** Docker containers on a **managed container service** (Cloud Run / ECS / GKE-lite) — keep it simple at MVP; full Kubernetes only when scale needs it.
 - **Managed data services:** managed Postgres (with PostGIS), managed Redis, managed object storage — less ops burden, in-region.
@@ -268,6 +272,8 @@ flowchart TB
     CDN[CDN] --> LB
     GH[GitHub Actions CI/CD] --> APP
 ```
+
+*Topology above is the **deferred production target** (managed, in-region). **Dev + staging today** run the same logical stack — Postgres+PostGIS, Redis, object storage (MinIO), app containers — **self-hosted on the existing VPS via Coolify + Docker Compose** (`S0-04`), with the data services private and only the apps proxied.*
 
 ---
 ---

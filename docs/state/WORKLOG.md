@@ -91,3 +91,72 @@ Containerized the three Node apps and delivered a one-command local dev stack. `
 **Scope note:** infra only — no schema/migrations, auth, RBAC, business logic, UI, cloud infra, or CI were added. `operator-api` left untouched (not a workspace member yet).
 
 **Next:** `S0-04` — Terraform base infra in-region (managed PG+PostGIS, Redis, private bucket, secret manager).
+
+---
+
+## 2026-07-18 — S0-04: Rebaseline infra onto the existing VPS (Coolify + Docker Compose)
+
+Replaced the **unconfirmed managed-cloud / Terraform** baseline for `S0-04` with an **owner-approved VPS/Coolify** baseline for dev + staging, and shipped a deployment bundle that reuses the S0-03 images. **No app logic, schema, auth, RBAC, or UI** — infra + docs only. The locked app stack, DB technology, modular-monolith, and two-plane boundary are unchanged.
+
+**Owner decision (authoritative):** dev + staging run on the existing **Hostinger VPS** (Ubuntu 24.04, already running **Coolify**), shared with other projects; ARA Tasks must be **isolated** and not alter existing resources. Managed KSA/GCC cloud + Terraform are **deferred to production**, not removed.
+
+**What landed:**
+- **`deploy/vps/docker-compose.staging.yml`** — a Coolify-compatible **override** layered on the root `docker-compose.yml`. It inherits each app's `build:`/Dockerfile (no build logic duplicated) and only adjusts runtime posture:
+  - `postgres` + `redis` → `ports: !reset null` (no host port at all — private on `ara-net`).
+  - `minio` → `ports: !override ["127.0.0.1:9000:9000"]` (S3 API **loopback-only** for the local health check; console 9001 dropped).
+  - `api`/`web`/`operator` → `ports: !override ["127.0.0.1:<host>:<container>"]` + `expose:` (loopback for local verification; on the VPS Coolify's proxy routes each **domain** → container over the Docker network).
+  - `restart: unless-stopped`, `deploy.resources` CPU/mem limits + reservations (shared-VPS-safe), health checks + digest-pinned images inherited from base, persistent named volumes inherited.
+- **`deploy/vps/.env.staging.example`** — every env var Coolify must supply, **placeholders only** (`__CHANGE_ME__`); documents the internal service-DNS DSNs; no real secret/IP/domain.
+- **`deploy/vps/README.md`** — the Coolify runbook: isolated project/env → add Compose deployment (both files via `COMPOSE_FILE=…:…` or additional-file) → secrets via Coolify's encrypted env → domains in the UI (never in Git, separate domains for tenant vs operator) → start/update → health/logs → **rollback** (Coolify deployment history) → **stop** ARA Tasks without touching other projects.
+- **`deploy/vps/PRE_DEPLOY_CHECKLIST.md`** — disk, memory, port conflicts, network isolation, volume names, backup readiness, compose sanity.
+- **`deploy/vps/BACKUP_RESTORE.md`** — Postgres `pg_dump`/`pg_restore` + MinIO `mc mirror`, written **outside** the app volumes, backup destination kept a placeholder (never a real target in Git). Redis (cache/broker) is not backed up.
+- **Docs rebaselined** (consistent message: dev/staging = VPS + Coolify + self-hosted PG/Redis/MinIO; managed cloud + Terraform = deferred production path; app stack + two-plane boundary unchanged): Task Breakdown `S0-04` row (new evidence-based Done-when), Roadmap Sprint 0 deliverables, Tech Stack §1 table (Hosting split into dev-staging/production, Containers-deploy, IaC) + §11 + §16, System Design §9 (+ diagram caption), System Architecture §8 (deployment note).
+- **DECISIONS.md** — new Accepted row; the **original `S0-04` ticket wording is preserved verbatim** ("Terraform base infra in-region: managed PG+PostGIS, Redis, private bucket, secret manager" / "terraform apply provisions dev env"). Deferred hosting-region row scoped to production.
+
+**Notes / things worth knowing (for the next person):**
+1. **Compose merges list fields by APPENDING.** The root file publishes every service on `0.0.0.0` (fine for S0-03 local dev). To make data services private in the *merged* config you MUST strip those bindings with the `!reset`/`!override` merge tags (Compose ≥ 2.24; here Compose v5.1.4). A plain `ports: []` in the override would NOT remove the base's public bindings — it would just append nothing. Verified in the rendered `config`: postgres/redis have **no** `ports:` at all; minio/api/web/operator show `host_ip: 127.0.0.1` only — zero `0.0.0.0` bindings for data services.
+2. **api `/` returns HTTP 404** (empty S0-01 scaffold, no routes yet), so `curl --fail http://localhost:3001/` exits non-zero. That is **not an S0-04 regression** — the endpoint is reachable (the container is healthy); `--fail` just rejects ≥400. Reported honestly with the raw exit code + the `404` status; adding a route is out of scope (app logic).
+3. **Loopback vs "private."** The `127.0.0.1` host bindings exist only so the ticket's LOCAL `curl` checks pass on the dev machine; they are never on the public interface. On the VPS they are inert — Coolify's proxy reaches the apps over the Docker network and MinIO is reached at `http://minio:9000` on `ara-net`.
+4. **Remote Coolify deployment is PENDING.** No `coolify` CLI and no configured non-interactive VPS/SSH access in this environment, and the ticket forbids requesting/printing credentials. The bundle is completed + verified locally; the runbook prints the exact remaining Coolify UI steps. Not faked as deployed.
+
+**Verification (WSL2 Ubuntu, Docker 29.5.3 / Compose v5.1.4):** `config --quiet` → 0; `--services` → 6; `build` → 0; `up -d --wait` → 6/6 healthy; `exec postgres pg_isready` → accepting; PostGIS → `3.6 …`; `exec redis redis-cli ping` → `PONG`; `curl :9000/minio/health/live` → 0; `curl :3000` / `:3002` → 0; `curl --fail :3001` → non-zero (HTTP 404, reachable); rendered `config` shows no public data-service ports; `turbo build` 5/5, `lint` 6/6, `typecheck` 7/7; `git diff --check` clean. `down` (no `-v`) — volumes preserved. Not committed/pushed (awaiting review).
+
+**Next:** `S0-05` — GitHub Actions CI (lint → typecheck → test → build → migrate → deploy dev/staging).
+
+---
+
+## 2026-07-18 — S0-04 (correction): deterministic API-reachability check; full suite now exits 0
+
+Follow-up to the S0-04 entry above. The prior verification used `curl --fail http://localhost:3001/`, which is **guaranteed to exit non-zero** because the empty S0-01 NestJS scaffold correctly returns **HTTP 404** at `/` (no routes yet). That put a command that *cannot* exit 0 inside an otherwise-green suite. This pass corrects the verification method — **no application code, no health endpoint, no Dockerfile/S0-03 change** — so every S0-04 command exits 0 and the "fully verified" claim is honest.
+
+**What changed:**
+- **Added `deploy/vps/VERIFY.md`** — the canonical S0-04 local evidence suite. The API step is now a deterministic reachability assertion:
+  ```bash
+  api_status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://localhost:3001/)"
+  test "$api_status" = "404"
+  printf 'API reachable with expected scaffold status: %s\n' "$api_status"
+  ```
+  It connects to `localhost:3001`, confirms the **expected** current status is `404`, and exits 0 **only** on that match. Web + operator still require `2xx`. The doc documents *why* `404` is expected (empty scaffold) and *why* `--fail` is wrong here.
+- **Privacy assertion widened to all six services:** the suite now fails on **any** non-loopback (`host_ip` ≠ `127.0.0.1`) published binding, covering postgres/redis (which publish nothing), minio, api, web, operator. Loopback-only is accepted for local checks.
+- **Added an independent S0-03 check:** `docker compose config --quiet` (root file only, no override) to prove the S0-03 local stack still validates on its own.
+- **State wording corrected** in `PROJECT_STATE.md` (status line + S0-04 row) to state the deterministic `404` assertion and that every command exits 0. The earlier note (this file, entry above, item 2) that `curl --fail :3001` exits non-zero is left intact as accurate history — this entry supersedes the *method*, not the fact.
+
+**No new decision** was introduced (a verification-method refinement, not a stack/design change), so `DECISIONS.md` is unchanged per the ticket's gate.
+
+**Verification (WSL2 Ubuntu, Docker 29.5.3 / Compose v5.1.4) — rerun from a clean state, `down` first; every command exit 0 (script tally: TOTAL NON-ZERO STEPS: 0):** `config --quiet` (override) 0; `config --services` → 6; `build` 0; `up -d --wait` → 6/6 healthy; `pg_isready` accepting; PostGIS `3.6 …`; `redis-cli ping` `PONG`; `curl :9000/minio/health/live` 0; `curl --fail :3000` (web) 0; **api `%{http_code}` == `404`** → prints "API reachable with expected scaffold status: 404", exit 0; `curl --fail :3002` (operator) 0; privacy check → `OK` (no non-loopback bindings; pg/redis publish none); **root `docker compose config --quiet` (S0-03, no override) 0**; `turbo build` 5/5, `lint` 6/6, `typecheck` 7/7; `git diff --check` clean; `down` (no `-v`) → volumes preserved. `.claude/` remains untracked and is **not** part of the intended S0-04 file set. Not committed/pushed (awaiting review).
+
+**Next:** `S0-05` — GitHub Actions CI (lint → typecheck → test → build → migrate → deploy dev/staging).
+
+---
+
+## 2026-07-18 — S0-04: committed the verified baseline on a feature branch
+
+Committed the verified S0-04 change set on a dedicated branch — no push/PR yet.
+
+- **Branch:** `feat/s0-04-vps-coolify-baseline` (off `main`).
+- **Commit:** `feat(infra): complete S0-04 VPS Coolify baseline`.
+- **Staged exactly 15 paths** (nothing else): the 6 `deploy/vps/` files, `.dockerignore`, the 5 rebaselined design docs (Task Breakdown, Roadmap, Tech Stack, System Design, System Architecture), and the 3 state docs (this file, PROJECT_STATE, DECISIONS). Staged with explicit paths only — never `git add .`/`-A`.
+- **`.gitignore` gotcha (for the next person):** `deploy/vps/.env.staging.example` is matched by the `.env.*` ignore rule, and the whitelist `!.env.example` only covers that exact filename — so the staging template was invisible to a plain `git add`. It's a **placeholders-only** file (no secrets), so it was force-added with `git add -f deploy/vps/.env.staging.example`. `.gitignore` was **left untouched** (out of scope for this ticket); real `.env.staging` files with secrets still match `.env.*` and stay ignored. A future cleanup could add an explicit `!deploy/vps/.env.staging.example` whitelist.
+- **`.claude/settings.local.json`** (harness-managed) was **not** staged and remains untracked. No `--no-verify`, amend, merge, rebase, or push.
+
+**Next:** `S0-05` — GitHub Actions CI (lint → typecheck → test → build → migrate → deploy dev/staging).

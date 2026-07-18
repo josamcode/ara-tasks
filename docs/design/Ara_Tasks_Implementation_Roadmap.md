@@ -31,7 +31,7 @@
 
 **Deliverables**
 - Monorepo (pnpm + Turborepo): `apps/api`, `apps/web`, `apps/operator`, `packages/@ara/ui|types|config`; Flutter app scaffold.
-- CI/CD (GitHub Actions): lint → typecheck → test → migrate → deploy to **dev + staging**; Docker base images pinned; Terraform for the in-region base infra (Postgres+PostGIS, Redis, object storage, secret manager).
+- CI/CD (GitHub Actions): lint → typecheck → test → migrate → deploy to **dev + staging**; Docker base images pinned. **Dev + staging run on the existing VPS via Coolify + Docker Compose** — self-hosted Postgres+PostGIS, Redis, and MinIO (S3-compatible), with data services kept private and only the apps exposed through Coolify's proxy. Managed cloud (managed Postgres/Redis/object storage + secret manager) and Terraform are a **deferred production** evolution path, not the current environment — see `docs/state/DECISIONS.md`.
 - **Tenancy:** `tenants` + `tenant_id` on every table + **RLS** wired (`app.tenant_id` per request).
 - **Auth:** login (phone/email + password), **OTP-SMS**, JWT (jose) + **rotating refresh + reuse detection**, argon2, device registration/binding, sessions. Operator plane auth stub with 2FA.
 - **RBAC engine:** permission registry, default roles seeded per tenant, `role_assignments` (scoped), the two request guards, per-request resolution cached in Redis.

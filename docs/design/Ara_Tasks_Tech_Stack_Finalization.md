@@ -24,10 +24,11 @@
 | SMS / OTP | **Unifonic or Taqnyat (KSA)** | — | ⚠️ Confirm vendor | local deliverability |
 | Email | **Amazon SES / Postmark** | — | 🔒 Locked | transactional |
 | Payments | **MyFatoorah** | API v2 | 🔒 Locked | KSA rail (per spec) |
-| Hosting | **KSA/GCC region cloud** | GCP Dammam / AWS Bahrain·UAE | ⚠️ Confirm certs | PDPL residency |
-| Containers / deploy | **Docker + managed containers** | — | 🔒 Locked | Cloud Run / ECS at MVP |
+| Hosting (dev + staging) | **Existing VPS (Ubuntu 24.04) + Coolify** | Hostinger VPS, shared | 🔒 Current env (S0-04) | Owner-approved; ARA Tasks isolated on the shared box |
+| Hosting (production) | **KSA/GCC region cloud** | GCP Dammam / AWS Bahrain·UAE | ⚠️ Deferred + confirm certs | PDPL residency — settled before production |
+| Containers / deploy | **Docker + Docker Compose (via Coolify) now; managed containers later** | — | 🔒 Locked | Compose on the VPS for dev/staging; Cloud Run / ECS at production scale |
 | CI/CD | **GitHub Actions** | — | 🔒 Locked | standard |
-| IaC | **Terraform** | 1.x | 🔒 Locked | reproducible infra |
+| IaC | **Terraform** | 1.x | 🔒 Locked (production) | Deferred to the managed-cloud production phase; dev/staging use Coolify + Compose |
 | Monorepo (JS) | **pnpm + Turborepo** | latest | 🔒 Locked | shared ui/types/config |
 | Styling (web) | **Tailwind CSS** | v4 | 🔒 Locked | tokens map to theme |
 | Observability | **Sentry + OpenTelemetry + pino** | — | 🔒 Locked | errors, tracing, logs |
@@ -156,13 +157,18 @@ Self-built (residency + custom device binding + two planes):
 
 ## 11. DevOps, Infrastructure & Hosting
 
+**Dev + staging today (owner-approved, `S0-04`):** run on the **existing Hostinger VPS** (Ubuntu 24.04) under **Coolify + Docker Compose**, reusing the S0-03 images. **PostgreSQL 18 + PostGIS, Redis, and MinIO (S3-compatible) are self-hosted** as containers and kept **private** (internal Docker network only); only the apps (api, web, operator) are exposed through Coolify's reverse proxy, each on its own domain. The two-plane security boundary is preserved (tenant vs operator = separate services + domains). ARA Tasks is isolated on the shared VPS and does not alter other projects. See [`deploy/vps/`](../../deploy/vps/) and `docs/state/DECISIONS.md`.
+
+**Production (deferred managed-cloud evolution path — *not* the current environment):**
 - **Containers:** **Docker** (base images pinned: `node:24-*`, official Postgres+PostGIS).
-- **Compute (MVP):** managed container service — **Cloud Run** (GCP) or **ECS/Fargate** (AWS). Full Kubernetes only when scale demands.
+- **Compute:** managed container service — **Cloud Run** (GCP) or **ECS/Fargate** (AWS). Full Kubernetes only when scale demands.
 - **Managed data:** managed **PostgreSQL 18** (with PostGIS) + managed **Redis** + object storage, all in-region.
 - **Hosting region (`⚠️` compliance-driven):** **GCP Dammam (KSA)** or **AWS Bahrain (me-south-1) / UAE (me-central-1)**; a local KSA provider if a client demands in-Kingdom certification. **Confirm the region carries the PDPL/compliance certs the client requires before locking.**
+- **IaC:** **Terraform** provisions the managed production infra. *Infra access (DB/servers/backups) is governed by cloud IAM — separate from and tighter than app RBAC.*
+
+**Both phases:**
 - **CI/CD:** **GitHub Actions** — lint → typecheck → test → build → migrate → deploy (dev → staging → prod).
-- **IaC:** **Terraform**. *Infra access (DB/servers/backups) is governed by cloud IAM — separate from and tighter than app RBAC.*
-- **Secrets:** cloud **Secret Manager** (GCP/AWS) or **Vault** — no secrets in code or committed env files.
+- **Secrets:** never in code or committed env files. Dev/staging = **Coolify's encrypted environment**; production = cloud **Secret Manager** (GCP/AWS) or **Vault**.
 
 ---
 ---
@@ -268,10 +274,10 @@ dev_dependencies:
 
 ## 16. Finalized vs Open Decisions
 
-**Finalized (🔒):** Flutter mobile, Next.js web, NestJS backend, Postgres+PostGIS, Drizzle ORM, Redis+BullMQ, S3 storage, self-built auth, FCM push, MyFatoorah, Turborepo+pnpm, Tailwind v4, testing stack, observability.
+**Finalized (🔒):** Flutter mobile, Next.js web, NestJS backend, Postgres+PostGIS, Drizzle ORM, Redis+BullMQ, S3 storage, self-built auth, FCM push, MyFatoorah, Turborepo+pnpm, Tailwind v4, testing stack, observability. **Dev + staging hosting** = the existing VPS + Coolify + Docker Compose (owner-approved, `S0-04`).
 
 **Open — need an external input (⚠️):**
-1. **Hosting region** — confirm which KSA/GCC region carries the exact PDPL/compliance certs the target clients require. *This is the most important open item; it blocks nothing in code but must be settled before production.*
+1. **Production hosting region** — confirm which KSA/GCC region carries the exact PDPL/compliance certs the target clients require. *The most important open item; it blocks nothing in code (dev + staging already run on the VPS) but must be settled before production.* Managed cloud + Terraform are the deferred production evolution path onto this region.
 2. **SMS vendor** — Unifonic vs Taqnyat: pick at contract stage on price + deliverability + OTP support.
 3. **ORM** — Drizzle is locked; revisit only if the team's DX strongly favors Prisma and PostGIS/RLS needs are met via raw SQL.
 

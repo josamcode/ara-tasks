@@ -32,9 +32,10 @@ docker-compose.yml
 compose.yaml
 compose.yml
 
-# --- Documentation & infra (out of scope for app builds) ---
+# --- Documentation, infra & deployment manifests (out of scope for app builds) ---
 docs
 infra
+deploy
 README.md
 CLAUDE.md
 *.md
