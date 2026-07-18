@@ -23,7 +23,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ara_local_dev_pw}
       POSTGRES_DB: ${POSTGRES_DB:-ara_tasks}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       # PG18+ images store data in a version-specific subdir; the mount goes at
       # /var/lib/postgresql (NOT .../data), else the entrypoint refuses to start.
@@ -34,7 +34,7 @@ services:
       # Accepts connections AND PostGIS is available (the image auto-creates the
       # extension in POSTGRES_DB via its initdb scripts — no migration needed).
       test:
-        - "CMD-SHELL"
+        - 'CMD-SHELL'
         - 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" && psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -tAc "SELECT PostGIS_Version();"'
       interval: 10s
       timeout: 5s
@@ -48,15 +48,15 @@ services:
     image: redis:7.4.9-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     container_name: ara-redis
     # Enable AOF so the named volume holds durable state across restarts.
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ['redis-server', '--appendonly', 'yes']
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - '${REDIS_PORT:-6379}:6379'
     volumes:
       - ara-redis-data:/data
     networks:
       - ara-net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 3s
       retries: 10
@@ -68,19 +68,19 @@ services:
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     container_name: ara-minio
-    command: ["server", "/data", "--console-address", ":9001"]
+    command: ['server', '/data', '--console-address', ':9001']
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ara_minio_local}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ara_minio_local_pw}
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"       # S3 API
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"   # web console
+      - '${MINIO_API_PORT:-9000}:9000' # S3 API
+      - '${MINIO_CONSOLE_PORT:-9001}:9001' # web console
     volumes:
       - ara-minio-data:/data
     networks:
       - ara-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      test: ['CMD', 'curl', '-f', 'http://127.0.0.1:9000/minio/health/live']
       interval: 10s
       timeout: 5s
       retries: 10
@@ -97,7 +97,7 @@ services:
     container_name: ara-api
     environment:
       NODE_ENV: production
-      PORT: "3001"
+      PORT: '3001'
       # Service-DNS connection strings (consumed by later tickets; scaffold ignores them).
       DATABASE_URL: ${DATABASE_URL:-postgres://ara:ara_local_dev_pw@postgres:5432/ara_tasks}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
@@ -107,7 +107,7 @@ services:
       S3_BUCKET: ${S3_BUCKET:-ara-proof-local}
       S3_REGION: ${S3_REGION:-us-east-1}
     ports:
-      - "${API_PORT:-3001}:3001"
+      - '${API_PORT:-3001}:3001'
     depends_on:
       postgres:
         condition: service_healthy
@@ -121,9 +121,9 @@ services:
       # Dependency-free probe: Node 24 global fetch. A 404 (scaffold has no routes
       # yet) still means the HTTP server is up and reachable → healthy.
       test:
-        - "CMD"
-        - "node"
-        - "-e"
+        - 'CMD'
+        - 'node'
+        - '-e'
         - "fetch('http://127.0.0.1:3001/').then(() => process.exit(0)).catch(() => process.exit(1))"
       interval: 10s
       timeout: 5s
@@ -141,10 +141,10 @@ services:
     container_name: ara-web
     environment:
       NODE_ENV: production
-      PORT: "3000"
-      HOSTNAME: "0.0.0.0"
+      PORT: '3000'
+      HOSTNAME: '0.0.0.0'
     ports:
-      - "${WEB_PORT:-3000}:3000"
+      - '${WEB_PORT:-3000}:3000'
     depends_on:
       api:
         condition: service_healthy
@@ -152,9 +152,9 @@ services:
       - ara-net
     healthcheck:
       test:
-        - "CMD"
-        - "node"
-        - "-e"
+        - 'CMD'
+        - 'node'
+        - '-e'
         - "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
       interval: 10s
       timeout: 5s
@@ -174,17 +174,17 @@ services:
     container_name: ara-operator
     environment:
       NODE_ENV: production
-      PORT: "3000"
-      HOSTNAME: "0.0.0.0"
+      PORT: '3000'
+      HOSTNAME: '0.0.0.0'
     ports:
-      - "${OPERATOR_PORT:-3002}:3000"
+      - '${OPERATOR_PORT:-3002}:3000'
     networks:
       - ara-net
     healthcheck:
       test:
-        - "CMD"
-        - "node"
-        - "-e"
+        - 'CMD'
+        - 'node'
+        - '-e'
         - "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
       interval: 10s
       timeout: 5s

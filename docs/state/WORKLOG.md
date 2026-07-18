@@ -160,3 +160,54 @@ Committed the verified S0-04 change set on a dedicated branch — no push/PR yet
 - **`.claude/settings.local.json`** (harness-managed) was **not** staged and remains untracked. No `--no-verify`, amend, merge, rebase, or push.
 
 **Next:** `S0-05` — GitHub Actions CI (lint → typecheck → test → build → migrate → deploy dev/staging).
+
+---
+
+## 2026-07-18 — S0-05: GitHub Actions CI/CD pipeline
+
+Delivered the CI/CD pipeline: one GitHub Actions workflow validating every change and deploying dev/staging **only through Coolify after all gates pass**. **Infra + scripts + docs only** — no application code, schema, migrations, auth, RBAC, or UI. Locked stack unchanged; **no new dependencies** added (actionlint is fetched at runtime as a pinned, checksum-verified tool, not a package dep).
+
+**What landed:**
+- **`.github/workflows/ci.yml`** — one pipeline, three trusted triggers:
+  - `pull_request` → **validation only**; no `environment:`, no secrets, no deploy.
+  - `push` to `main` → validate → **automatic deploy to the `staging` environment**.
+  - `workflow_dispatch` (input `environment`: `development`|`staging`, default `development`) → validate → manual deploy.
+  - Two jobs: `validate` (install → **format:check → lint → typecheck → test → build** in that order, then both Compose configs render) and `deploy` (`needs: validate`, `if: github.event_name != 'pull_request'`). `environment.name` + the deploy `concurrency.group` resolve via `(workflow_dispatch && inputs.environment) || 'staging'`, so push always targets staging.
+  - **Security posture:** `pull_request` (never `pull_request_target`); least-priv `permissions: contents: read`; explicit `timeout-minutes`; `validate` concurrency **cancels stale** runs; `deploy` concurrency **serializes per environment and never cancels an in-progress deploy** (`cancel-in-progress: false`). Every action pinned to an **immutable commit SHA** with the verified tag in a comment (`actions/checkout@…#v4.2.2`, `actions/setup-node@…#v4.1.0`, `pnpm/action-setup@…#v4.1.0`).
+- **`scripts/ci/run-migration-stage.sh`** — the honest migration contract. If `@ara/api` defines `db:migrate:ci`, run it and propagate the exit code; otherwise emit a **visible `::notice::` that migrations are pending S0-09** and exit 0. **No fake migrations / no misleading success.** S0-09 activates real CI migrations by adding the script — **no pipeline redesign** (the deploy job already sets up Node+pnpm+install before this stage).
+- **`scripts/ci/trigger-coolify.sh`** — POSTs the env's Coolify deploy webhook with `Authorization: Bearer <COOLIFY_TOKEN>`. Fails on missing config / network error / unauthorized / non-2xx. **Never prints the webhook URL or token** (only a `scheme://host` redaction). `--dry-run` validates inputs **without a network call and without requiring real secrets**. Method overridable via `COOLIFY_WEBHOOK_METHOD` (default POST).
+- **`scripts/ci/verify-deployment.sh`** — bounded, deterministic post-deploy check: `WEB_URL`/`OPERATOR_URL` must be `2xx`, `API_URL` must equal `API_EXPECTED_STATUS` (default **404** — empty NestJS scaffold has no root route; move to a health endpoint later by changing the var only). Retries `VERIFY_RETRIES`×`VERIFY_INTERVAL_SECONDS` (default 30×10s) then fails.
+- **`scripts/ci/validate-workflows.sh`** — runs **actionlint pinned to v1.7.7**: uses a PATH binary if present, else (opt-in) the `rhysd/actionlint` image pinned by **digest**, else downloads the release tarball and **verifies its SHA-256** before running. No permanent dependency added.
+- **`.github/CI_CD_SETUP.md`** + **`deploy/vps/README.md`** CI/CD section — the one-time remote setup: create `development`/`staging` GitHub Environments (staging deployment-branch rule = `main`); separate Coolify resources + deploy webhooks; a **least-privilege `deploy`-only** Coolify API token; the env-scoped secrets (`COOLIFY_WEBHOOK`, `COOLIFY_TOKEN`) + non-secret vars (`WEB_URL`, `API_URL`, `OPERATOR_URL`, `API_EXPECTED_STATUS`); **disable Coolify auto-deploy-on-push** so deploys can't bypass the gates; confirm staging tracks `main`; how to dispatch dev/staging and inspect evidence. **No credential-like example values.**
+- Removed the now-obsolete `.github/workflows/.gitkeep`.
+
+**Problems hit / things worth knowing (for the next person):**
+1. **Pre-existing latent `format:check` failure.** The new `validate` job runs `pnpm format:check`, which had **never been run on the S0-03/S0-04 Compose YAML** (prior tickets verified via `turbo build/lint/typecheck` only). Those files used **double quotes**, but the repo's Prettier config is `singleQuote: true` — so `format:check` was already red on `main`. Fixed by `prettier --write` on `docker-compose.yml` + `deploy/vps/docker-compose.staging.yml`. **Proven semantically inert:** `git diff --ignore-all-space` shows only `"`→`'` and inline-comment spacing, and the rendered `docker compose config` for both stacks is **byte-identical before/after** (same sha256), privacy check still OK, `!override`/`!reset` tags untouched. Without this the pipeline would fail on its first run.
+2. **`.claude/settings.local.json` tripped local `format:check`.** It's harness-managed and gitignored (absent from CI checkouts) but Prettier doesn't read `.gitignore`, so it flagged locally. Added `.claude/` to **`.prettierignore`** (excludes it from formatting; does not touch its contents). No CI effect.
+3. **WSL quoting corruption (again).** As the S0-03 entry warned, `wsl.exe -d Ubuntu bash -lc "…"` with inner `$vars`/loops mangles (empty-arg errors, garbled output). Ran all multi-step verification from **`.sh` files** (`/tmp/…`) invoked as `wsl … bash -lc 'bash /tmp/x.sh'`; also had to single-quote `/tmp/…` paths so Git Bash didn't rewrite them to a Windows temp path.
+4. **Deploy job installs deps before the migration stage** (Node 24 + pnpm + `--frozen-lockfile`) so S0-09's `db:migrate:ci` (drizzle-kit) can run with zero pipeline changes.
+
+**Verification (WSL2 Ubuntu, Node 24.18.0 / pnpm 11.9.0 / Docker 29.5.3 — every command exit 0):** `pnpm install --frozen-lockfile` 0; `format:check` 0 (after the reformat + `.prettierignore`); `lint` 6/6; `typecheck` 7/7; `test` 0 (no test scripts yet → turbo runs the `^build` deps only); `build` 5/5 (web/operator via Turbopack on Linux); `docker compose config` (root) 0 and (root + staging override) 0; `bash scripts/ci/validate-workflows.sh` → actionlint 1.7.7 **"no problems found"**; `run-migration-stage.sh` → S0-09 pending notice, exit 0; `trigger-coolify.sh --dry-run` → redacted, exit 0 (no secrets needed); staging stack `up -d --wait` → **6/6 healthy**, pg/redis publish **no** host ports, minio/api/web/operator loopback-only; `verify-deployment.sh` → **web 200 / operator 200 / api 404**, PASSED; `down` keeps volumes; `git diff --check` clean; secret scan of new files clean. **Not committed/pushed.**
+
+**Remote acceptance — PENDING (honest gate).** No authenticated GitHub/Coolify access in this environment and the ticket forbids requesting/printing credentials, so the GitHub Environments, their secrets/vars, and the Coolify deploy resources/webhooks are **not yet created**. Repository implementation is complete and locally verified; **`merge to main → staging` is NOT yet proven end-to-end.** The exact remaining UI steps are in `.github/CI_CD_SETUP.md`.
+
+**Next:** `S0-09` — Drizzle setup + `drizzle-kit` migration pipeline + base migration (drops straight into this pipeline's migration stage).
+
+---
+
+## 2026-07-18 — S0-05: committed, pushed, PR #3 opened; PR-validation green on GitHub
+
+Published the verified S0-05 change set on a feature branch and opened its Pull Request — **no merge, no remote deployment**.
+
+- **Reran the full local S0-05 suite** before committing — **every command exit 0** (15/15): `install --frozen-lockfile`, `format:check`, `lint`, `typecheck`, `test`, `build`, `docker compose config` (root) + (root+staging), `validate-workflows.sh` (actionlint 1.7.7 clean), `run-migration-stage.sh` (honest S0-09 notice), `trigger-coolify.sh --dry-run`, staging stack `up -d --wait` (6/6 healthy), `verify-deployment.sh` (web 200 / operator 200 / api 404), `down`, `git diff --check`.
+- **Branch:** `feat/s0-05-github-actions-cicd` (off `main`). **Commit:** `d13ebf8` `feat(ci): complete S0-05 GitHub Actions pipeline`.
+- **Staged exactly the 14 approved paths** with explicit `git add -- <paths>` (the 13 add/modify) + `git add -u -- .github/workflows/.gitkeep` (the deletion) — never `git add .`/`-A`. Verified: `git diff --cached --name-only | wc -l` == **14**, zero `.claude/` entries, cached `--check` clean, staged secret scan clean. Scripts committed `100755` (executable).
+- **Pushed** with upstream tracking (no force). The `gh` token carries the **`workflow`** scope, required to push `.github/workflows/`.
+- **PR [#3](https://github.com/josamcode/ara-tasks/pull/3)** into `main` (title `feat(ci): complete S0-05 GitHub Actions pipeline`).
+- **PR checks (GitHub runners):** `Validate (lint · typecheck · test · build)` → **pass (43s)**; `Deploy` → **skipping** (gated `if: github.event_name != 'pull_request'`). This **remotely proves the secret-free PR-validation path**: a PR runs validation only and the deploy job — the only one referencing environment secrets — never runs. `gh pr checks --watch --fail-fast` exit 0.
+- **No merge.** `main` and `origin/main` remain at `d3c626c`; `d13ebf8` exists only on the feature branch (+ its remote). No amend/rebase/force-push.
+- Corrected the committed `PROJECT_STATE.md` (the earlier "Not committed/pushed" line became stale once pushed) to record the commit hash, open PR #3, and the green remote PR-validation. This state-only follow-up is committed separately on the same branch (state rule).
+
+**Remote acceptance — still PENDING.** `merge to main → staging` is **not** proven: the `development`/`staging` GitHub Environments, their secrets/vars, and the Coolify deploy resources/webhooks are not yet created (needs UI/credential access — `.github/CI_CD_SETUP.md`). Not claimed as done.
+
+**Next:** `S0-09` — Drizzle setup + `drizzle-kit` migration pipeline + base migration.
