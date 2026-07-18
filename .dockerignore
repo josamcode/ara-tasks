@@ -1,0 +1,55 @@
+# Build-context excludes shared by every app image (apps/api, apps/web, apps/operator).
+# Goal: keep contexts small and deterministic — dependencies and build outputs are
+# (re)generated INSIDE the image, never shipped in from the host.
+
+# --- Dependencies (reinstalled in-image via pnpm --frozen-lockfile) ---
+**/node_modules
+
+# --- Build outputs (rebuilt in-image via turbo) ---
+**/dist
+**/.next
+**/.turbo
+**/out
+**/build
+**/next-env.d.ts
+**/*.tsbuildinfo
+
+# --- VCS / CI (not needed to build the apps) ---
+.git
+.gitattributes
+.gitignore
+.github
+
+# --- Env & secrets (NEVER send secrets into a build context) ---
+**/.env
+**/.env.*
+
+# --- Docker / compose (read by the builder directly, not needed inside the context) ---
+Dockerfile
+**/Dockerfile
+.dockerignore
+docker-compose.yml
+compose.yaml
+compose.yml
+
+# --- Documentation & infra (out of scope for app builds) ---
+docs
+infra
+README.md
+CLAUDE.md
+*.md
+
+# --- Logs / test / coverage artifacts ---
+**/*.log
+**/coverage
+**/.nyc_output
+**/playwright-report
+**/test-results
+
+# --- Editor / OS cruft ---
+.vscode
+.idea
+**/*.swp
+**/.DS_Store
+Thumbs.db
+desktop.ini

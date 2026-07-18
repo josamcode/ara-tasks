@@ -1,0 +1,201 @@
+# ARA Tasks — LOCAL development stack (S0-03).
+# One command brings up the full local environment:  docker compose up --build
+#
+# Six services: postgres (PG18 + PostGIS 3.6), redis, minio (S3), and the three
+# Node apps (api, web, operator). Infra images are pinned by tag + immutable digest.
+# App services build from their per-app Dockerfile with the repo root as context.
+#
+# NON-PRODUCTION local defaults only (see .env.example). No real secrets are committed;
+# real secrets come from the cloud secret manager (CLAUDE.md rule 9). `${VAR:-default}`
+# means this file works with NO `.env` present.
+
+name: ara-tasks
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 18 + PostGIS 3.6 — relational + geospatial (geofence) store.
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:18-3.6@sha256:c893f6f2652d11e13f50f8623045b3523991b41d038b4d213dc040f42641f0d7
+    container_name: ara-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ara}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ara_local_dev_pw}
+      POSTGRES_DB: ${POSTGRES_DB:-ara_tasks}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # PG18+ images store data in a version-specific subdir; the mount goes at
+      # /var/lib/postgresql (NOT .../data), else the entrypoint refuses to start.
+      - ara-postgres-data:/var/lib/postgresql
+    networks:
+      - ara-net
+    healthcheck:
+      # Accepts connections AND PostGIS is available (the image auto-creates the
+      # extension in POSTGRES_DB via its initdb scripts — no migration needed).
+      test:
+        - "CMD-SHELL"
+        - 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" && psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -tAc "SELECT PostGIS_Version();"'
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Redis 7.4 — cache, queues (BullMQ), pub/sub, rate limiting.
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7.4.9-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
+    container_name: ara-redis
+    # Enable AOF so the named volume holds durable state across restarts.
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - ara-redis-data:/data
+    networks:
+      - ara-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # MinIO — S3-compatible object storage (proof media, exports, signed URLs).
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    container_name: ara-minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ara_minio_local}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ara_minio_local_pw}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"       # S3 API
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"   # web console
+    volumes:
+      - ara-minio-data:/data
+    networks:
+      - ara-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Tenant API (NestJS). Waits for all infra to be healthy before starting.
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: ara-tasks/api:local
+    container_name: ara-api
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      # Service-DNS connection strings (consumed by later tickets; scaffold ignores them).
+      DATABASE_URL: ${DATABASE_URL:-postgres://ara:ara_local_dev_pw@postgres:5432/ara_tasks}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-ara_minio_local}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-ara_minio_local_pw}
+      S3_BUCKET: ${S3_BUCKET:-ara-proof-local}
+      S3_REGION: ${S3_REGION:-us-east-1}
+    ports:
+      - "${API_PORT:-3001}:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - ara-net
+    healthcheck:
+      # Dependency-free probe: Node 24 global fetch. A 404 (scaffold has no routes
+      # yet) still means the HTTP server is up and reachable → healthy.
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://127.0.0.1:3001/').then(() => process.exit(0)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # Tenant web dashboard (Next.js). Tenant plane → waits for the tenant API.
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: ara-tasks/web:local
+    container_name: ara-web
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - ara-net
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # Operator console (Next.js). SEPARATE plane — deliberately has NO dependency on
+  # the tenant API (the two planes never touch; its backend operator-api is out of
+  # scope for S0-03). It only needs its own image built.
+  # ---------------------------------------------------------------------------
+  operator:
+    build:
+      context: .
+      dockerfile: apps/operator/Dockerfile
+    image: ara-tasks/operator:local
+    container_name: ara-operator
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "${OPERATOR_PORT:-3002}:3000"
+    networks:
+      - ara-net
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+networks:
+  ara-net:
+    driver: bridge
+
+volumes:
+  ara-postgres-data:
+  ara-redis-data:
+  ara-minio-data:
